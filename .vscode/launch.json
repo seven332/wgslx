@@ -1,0 +1,13 @@
+{
+  "configurations": [
+    {
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "name": "Debug CMake Target",
+      "program": "${command:cmake.launchTargetPath}",
+      "request": "launch",
+      "type": "lldb"
+    }
+  ],
+  "version": "0.2.0"
+}

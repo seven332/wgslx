@@ -23,3 +23,5 @@ set(TINT_BUILD_MSL_WRITER OFF)
 set(TINT_BUILD_SPV_WRITER OFF)
 set(TINT_BUILD_TESTS OFF)
 add_subdirectory(dawn)
+
+add_subdirectory(dawn/third_party/googletest)
