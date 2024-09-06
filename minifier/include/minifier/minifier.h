@@ -9,7 +9,8 @@ struct Options {};
 
 struct Result {
     std::string wgsl;
-    bool failed;
+    std::string failureMessage;
+    bool failed = false;
 };
 
 Result Minify(std::string_view data, const Options& options);

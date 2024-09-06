@@ -1,3 +1,4 @@
 {
-  "cmake.buildDirectory": "${workspaceFolder}/out/${buildType}"
+  "cmake.buildDirectory": "${workspaceFolder}/out/${buildType}",
+  "editor.formatOnSave": true
 }

@@ -25,3 +25,5 @@ set(TINT_BUILD_TESTS OFF)
 add_subdirectory(dawn)
 
 add_subdirectory(dawn/third_party/googletest)
+
+add_subdirectory(range-v3)
