@@ -1,10 +1,16 @@
 #include "minifier/minifier.h"
 
+#include <src/tint/lang/wgsl/ast/transform/manager.h>
 #include <src/tint/lang/wgsl/reader/reader.h>
 #include <src/tint/lang/wgsl/writer/writer.h>
 #include <src/tint/utils/diagnostic/diagnostic.h>
 
-#include <range/v3/all.hpp>
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/join.hpp>
+#include <range/v3/view/transform.hpp>
+
+#include "renamer.h"
 
 namespace wgslx::minifier {
 
@@ -18,30 +24,40 @@ static Result GenerateError(const tint::diag::List& diagnostics) {
                    ranges::views::join('\n') | ranges::to<std::string>();
     return {
         .failed = true,
-        .failureMessage = std::move(message),
+        .failure_message = std::move(message),
     };
 }
 
 Result Minify(std::string_view data, const Options& options) {
+    // Parse
     tint::Source::File file(DefaultPath, data);
-    auto program = tint::wgsl::reader::Parse(
+    auto input = tint::wgsl::reader::Parse(
         &file,
         {
             .allowed_features = tint::wgsl::AllowedFeatures::Everything(),
             .mode = tint::wgsl::ValidationMode::kFull,
         }
     );
-    if (program.Diagnostics().ContainsErrors()) {
-        return GenerateError(program.Diagnostics());
+    if (input.Diagnostics().ContainsErrors()) {
+        return GenerateError(input.Diagnostics());
     }
 
-    auto result = tint::wgsl::writer::Generate(program, {});
+    // Transform
+    tint::ast::transform::Manager transform_manager;
+    tint::ast::transform::DataMap in_data;
+    tint::ast::transform::DataMap out_data;
+    transform_manager.Add<Renamer>();
+    auto output = transform_manager.Run(input, in_data, out_data);
+
+    // Generate
+    auto result = tint::wgsl::writer::Generate(output, {});
     if (result != tint::Success) {
         return GenerateError(result.Failure().reason);
     }
 
     return {
         .wgsl = result->wgsl,
+        .remappings = std::move(out_data.Get<Renamer::Data>()->remappings),
     };
 }
 
