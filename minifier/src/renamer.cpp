@@ -23,6 +23,9 @@
 #include <cstddef>
 #include <cstring>
 #include <iterator>
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/transform.hpp>
 #include <sstream>
 #include <string>
 #include <unordered_set>
@@ -343,6 +346,11 @@ Renamer::ApplyResult Renamer::Apply(
 ) const {
     auto preserved_identifiers = CollectPreservedIdentifiers(program);
 
+    auto entry_points = program.AST().Functions() |
+                        ranges::views::filter([](const tint::ast::Function* f) { return f->IsEntryPoint(); }) |
+                        ranges::views::transform([](const tint::ast::Function* f) { return f->name->symbol.Name(); }) |
+                        ranges::to<std::unordered_set>();
+
     tint::Hashmap<tint::Symbol, tint::Symbol, 32> remappings;
     auto nameIndex = 0;
 
@@ -374,10 +382,12 @@ Renamer::ApplyResult Renamer::Apply(
     });
     ctx.Clone();
 
-    // TODO: only output top level name
     Remappings out;
-    for (auto& it : remappings) {
-        out[it.key->Name()] = it.value.Name();
+    for (const auto& it : remappings) {
+        auto from = it.key->Name();
+        if (entry_points.contains(from)) {
+            out[from] = it.value.Name();
+        }
     }
     outputs.Add<Data>(std::move(out));
 

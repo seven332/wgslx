@@ -13,15 +13,20 @@ TEST(minifier, Minify) {
 fn average(a: f32, b: f32) -> f32 {
     return (a + b) / 2;
 }
+
+@vertex fn vs1() -> @builtin(position) vec4f {
+  return vec4f(average(0, 1));
+}
 )",
         {}
     );
     EXPECT_FALSE(result.failed);
-    EXPECT_EQ(result.wgsl, "fn a(b : f32, c : f32) -> f32 {\n  return ((b + c) / 2);\n}\n");
-    EXPECT_THAT(
-        result.remappings,
-        testing::UnorderedElementsAre(testing::Pair("average", "a"), testing::Pair("a", "b"), testing::Pair("b", "c"))
+    EXPECT_EQ(
+        result.wgsl,
+        "fn a(b : f32, c : f32) -> f32 {\n  return ((b + c) / 2);\n}\n"
+        "\n@vertex\nfn d() -> @builtin(position) vec4f {\n  return vec4f(a(0, 1));\n}\n"
     );
+    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "d")));
 }
 
 TEST(minifier, MinifyFailed) {
