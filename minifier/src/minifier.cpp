@@ -1,6 +1,7 @@
 #include "minifier/minifier.h"
 
 #include <src/tint/lang/wgsl/ast/transform/manager.h>
+#include <src/tint/lang/wgsl/ast/transform/remove_unreachable_statements.h>
 #include <src/tint/lang/wgsl/reader/reader.h>
 #include <src/tint/lang/wgsl/writer/writer.h>
 #include <src/tint/utils/diagnostic/diagnostic.h>
@@ -46,6 +47,7 @@ Result Minify(std::string_view data, const Options& options) {
     tint::ast::transform::Manager transform_manager;
     tint::ast::transform::DataMap in_data;
     tint::ast::transform::DataMap out_data;
+    transform_manager.Add<tint::ast::transform::RemoveUnreachableStatements>();
     transform_manager.Add<Renamer>();
     auto output = transform_manager.Run(input, in_data, out_data);
 

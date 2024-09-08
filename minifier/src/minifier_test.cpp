@@ -15,7 +15,7 @@ fn average(a: f32, b: f32) -> f32 {
 }
 
 @vertex fn vs1() -> @builtin(position) vec4f {
-  return vec4f(average(0, 1));
+    return vec4f(average(0, 1));
 }
 )",
         {}
@@ -56,6 +56,22 @@ TEST(minifier, SkipKeywords) {
     EXPECT_NE(result.wgsl.find("let ar = 0;"), std::string::npos);
     EXPECT_EQ(result.wgsl.find("let as = 0;"), std::string::npos);
     EXPECT_NE(result.wgsl.find("let at = 0;"), std::string::npos);
+}
+
+TEST(minifier, RemoveUnreachable) {
+    auto result = Minify(
+        R"(
+@vertex fn vs1() -> @builtin(position) vec4f {
+    return vec4f(2);
+    return vec4f(1);
+    return vec4f(0);
+}
+)",
+        {}
+    );
+    EXPECT_FALSE(result.failed);
+    EXPECT_EQ(result.wgsl, "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4f(2);\n}\n");
+    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "a")));
 }
 
 }  // namespace wgslx::minifier
