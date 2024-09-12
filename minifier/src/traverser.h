@@ -15,7 +15,6 @@ namespace wgslx::minifier {
 void Traverse(const tint::ast::Statement* stmt, const std::function<void(const tint::ast::Identifier*)>& block);
 void Traverse(const tint::ast::Expression* expr, const std::function<void(const tint::ast::Identifier*)>& block);
 void Traverse(const tint::ast::Attribute* attr, const std::function<void(const tint::ast::Identifier*)>& block);
-void Traverse(const tint::ast::CaseSelector* selector, const std::function<void(const tint::ast::Identifier*)>& block);
-void Traverse(const tint::ast::Variable* selector, const std::function<void(const tint::ast::Identifier*)>& block);
+void Traverse(const tint::ast::Variable* var, const std::function<void(const tint::ast::Identifier*)>& block);
 
 }  // namespace wgslx::minifier

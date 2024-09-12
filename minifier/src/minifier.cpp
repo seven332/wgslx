@@ -11,6 +11,7 @@
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/transform.hpp>
 
+#include "remover.h"
 #include "renamer.h"
 
 namespace wgslx::minifier {
@@ -47,8 +48,15 @@ Result Minify(std::string_view data, const Options& options) {
     tint::ast::transform::Manager transform_manager;
     tint::ast::transform::DataMap in_data;
     tint::ast::transform::DataMap out_data;
-    transform_manager.Add<tint::ast::transform::RemoveUnreachableStatements>();
-    transform_manager.Add<Renamer>();
+    if (options.remove_unreachable_statements) {
+        transform_manager.Add<tint::ast::transform::RemoveUnreachableStatements>();
+    }
+    if (options.remove_useless_functions) {
+        transform_manager.Add<Remover>();
+    }
+    if (options.rename_identifiers) {
+        transform_manager.Add<Renamer>();
+    }
     auto output = transform_manager.Run(input, in_data, out_data);
 
     // Generate

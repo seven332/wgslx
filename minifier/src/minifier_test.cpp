@@ -7,7 +7,7 @@
 
 namespace wgslx::minifier {
 
-TEST(minifier, Minify) {
+TEST(minifier, Rename) {
     auto result = Minify(
         R"(
 fn average(a: f32, b: f32) -> f32 {
@@ -42,7 +42,7 @@ fn average(a: f32, b: f3) -> f32 {
     EXPECT_EQ(result.failure_message, "expected ';' for return statement");
 }
 
-TEST(minifier, SkipKeywords) {
+TEST(minifier, RenameSkipKeywords) {
     std::string input = "fn f1() -> i32 {";
     for (auto i = 0; i < 4000; ++i) {
         input += "let a";
@@ -51,7 +51,14 @@ TEST(minifier, SkipKeywords) {
     }
     input += "return 0;}";
 
-    auto result = Minify(input, {});
+    auto result = Minify(
+        input,
+        {
+            .rename_identifiers = true,
+            .remove_unreachable_statements = false,
+            .remove_useless_functions = false,
+        }
+    );
     EXPECT_FALSE(result.failed);
     EXPECT_NE(result.wgsl.find("let ar = 0;"), std::string::npos);
     EXPECT_EQ(result.wgsl.find("let as = 0;"), std::string::npos);
@@ -71,6 +78,24 @@ TEST(minifier, RemoveUnreachable) {
     );
     EXPECT_FALSE(result.failed);
     EXPECT_EQ(result.wgsl, "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4f(2);\n}\n");
+    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "a")));
+}
+
+TEST(minifier, RemoveUselessFunctions) {
+    auto result = Minify(
+        R"(
+fn average(a: f32, b: f32) -> f32 {
+    return (a + b) / 2;
+}
+
+@vertex fn vs1() -> @builtin(position) vec4f {
+    return vec4f(1);
+}
+)",
+        {}
+    );
+    EXPECT_FALSE(result.failed);
+    EXPECT_EQ(result.wgsl, "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4f(1);\n}\n");
     EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "a")));
 }
 

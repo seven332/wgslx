@@ -15,6 +15,7 @@
 #include <src/tint/lang/wgsl/ast/case_statement.h>
 #include <src/tint/lang/wgsl/ast/color_attribute.h>
 #include <src/tint/lang/wgsl/ast/compound_assignment_statement.h>
+#include <src/tint/lang/wgsl/ast/const.h>
 #include <src/tint/lang/wgsl/ast/const_assert.h>
 #include <src/tint/lang/wgsl/ast/continue_statement.h>
 #include <src/tint/lang/wgsl/ast/diagnostic_attribute.h>
@@ -22,20 +23,38 @@
 #include <src/tint/lang/wgsl/ast/discard_statement.h>
 #include <src/tint/lang/wgsl/ast/float_literal_expression.h>
 #include <src/tint/lang/wgsl/ast/for_loop_statement.h>
+#include <src/tint/lang/wgsl/ast/group_attribute.h>
+#include <src/tint/lang/wgsl/ast/id_attribute.h>
 #include <src/tint/lang/wgsl/ast/identifier_expression.h>
 #include <src/tint/lang/wgsl/ast/if_statement.h>
 #include <src/tint/lang/wgsl/ast/increment_decrement_statement.h>
 #include <src/tint/lang/wgsl/ast/index_accessor_expression.h>
+#include <src/tint/lang/wgsl/ast/input_attachment_index_attribute.h>
 #include <src/tint/lang/wgsl/ast/int_literal_expression.h>
+#include <src/tint/lang/wgsl/ast/internal_attribute.h>
+#include <src/tint/lang/wgsl/ast/interpolate_attribute.h>
+#include <src/tint/lang/wgsl/ast/invariant_attribute.h>
+#include <src/tint/lang/wgsl/ast/let.h>
 #include <src/tint/lang/wgsl/ast/literal_expression.h>
+#include <src/tint/lang/wgsl/ast/location_attribute.h>
 #include <src/tint/lang/wgsl/ast/loop_statement.h>
 #include <src/tint/lang/wgsl/ast/member_accessor_expression.h>
+#include <src/tint/lang/wgsl/ast/must_use_attribute.h>
+#include <src/tint/lang/wgsl/ast/override.h>
+#include <src/tint/lang/wgsl/ast/parameter.h>
 #include <src/tint/lang/wgsl/ast/phony_expression.h>
 #include <src/tint/lang/wgsl/ast/return_statement.h>
+#include <src/tint/lang/wgsl/ast/stage_attribute.h>
+#include <src/tint/lang/wgsl/ast/stride_attribute.h>
+#include <src/tint/lang/wgsl/ast/struct_member_align_attribute.h>
+#include <src/tint/lang/wgsl/ast/struct_member_offset_attribute.h>
+#include <src/tint/lang/wgsl/ast/struct_member_size_attribute.h>
 #include <src/tint/lang/wgsl/ast/switch_statement.h>
 #include <src/tint/lang/wgsl/ast/unary_op_expression.h>
+#include <src/tint/lang/wgsl/ast/var.h>
 #include <src/tint/lang/wgsl/ast/variable_decl_statement.h>
 #include <src/tint/lang/wgsl/ast/while_statement.h>
+#include <src/tint/lang/wgsl/ast/workgroup_attribute.h>
 #include <src/tint/utils/rtti/switch.h>
 
 namespace wgslx::minifier {
@@ -64,7 +83,7 @@ void Traverse(const tint::ast::Statement* stmt, const std::function<void(const t
         [&](const tint::ast::CallStatement* c) { Traverse(c->expr, block); },
         [&](const tint::ast::CaseStatement* c) {
             for (const auto* s : c->selectors) {
-                Traverse(s, block);
+                Traverse(s->expr, block);
             }
             Traverse(c->body, block);
         },
@@ -177,7 +196,52 @@ void Traverse(const tint::ast::Attribute* attr, const std::function<void(const t
             }
             block(d->control.rule_name->name);
         },
-        // TODO:
+        [&](const tint::ast::GroupAttribute* g) { Traverse(g->expr, block); },
+        [&](const tint::ast::IdAttribute* i) { Traverse(i->expr, block); },
+        [&](const tint::ast::InputAttachmentIndexAttribute* i) { Traverse(i->expr, block); },
+        [&](const tint::ast::InternalAttribute*) {
+            // Skip
+        },
+        [&](const tint::ast::InterpolateAttribute*) {},
+        [&](const tint::ast::InvariantAttribute*) {},
+        [&](const tint::ast::LocationAttribute* l) { Traverse(l->expr, block); },
+        [&](const tint::ast::MustUseAttribute*) {},
+        [&](const tint::ast::StageAttribute*) {},
+        [&](const tint::ast::StrideAttribute*) {},
+        [&](const tint::ast::StructMemberAlignAttribute* a) { Traverse(a->expr, block); },
+        [&](const tint::ast::StructMemberOffsetAttribute* o) { Traverse(o->expr, block); },
+        [&](const tint::ast::StructMemberSizeAttribute* s) { Traverse(s->expr, block); },
+        [&](const tint::ast::WorkgroupAttribute* w) {
+            Traverse(w->x, block);
+            Traverse(w->y, block);
+            Traverse(w->z, block);
+        },
+        TINT_ICE_ON_NO_MATCH
+    );
+}
+
+void Traverse(const tint::ast::Variable* var, const std::function<void(const tint::ast::Identifier*)>& block) {
+    if (!var) {
+        return;
+    }
+
+    Traverse(var->type.expr, block);
+    block(var->name);
+    Traverse(var->initializer, block);
+    for (const auto* a : var->attributes) {
+        Traverse(a, block);
+    }
+
+    Switch(
+        var,
+        [&](const tint::ast::Const*) {},
+        [&](const tint::ast::Let*) {},
+        [&](const tint::ast::Override*) {},
+        [&](const tint::ast::Parameter*) {},
+        [&](const tint::ast::Var* v) {
+            Traverse(v->declared_address_space, block);
+            Traverse(v->declared_access, block);
+        },
         TINT_ICE_ON_NO_MATCH
     );
 }

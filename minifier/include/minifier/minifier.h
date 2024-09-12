@@ -6,7 +6,11 @@
 
 namespace wgslx::minifier {
 
-struct Options {};
+struct Options {
+    bool rename_identifiers = true;
+    bool remove_unreachable_statements = true;
+    bool remove_useless_functions = true;
+};
 
 struct Result {
     std::string wgsl;
