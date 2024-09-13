@@ -11,8 +11,8 @@
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/transform.hpp>
 
-#include "remover.h"
-#include "renamer.h"
+#include "remove_useless_functions.h"
+#include "rename_identifiers.h"
 
 namespace wgslx::minifier {
 
@@ -52,10 +52,10 @@ Result Minify(std::string_view data, const Options& options) {
         transform_manager.Add<tint::ast::transform::RemoveUnreachableStatements>();
     }
     if (options.remove_useless_functions) {
-        transform_manager.Add<Remover>();
+        transform_manager.Add<RemoveUselessFunctions>();
     }
     if (options.rename_identifiers) {
-        transform_manager.Add<Renamer>();
+        transform_manager.Add<RenameIdentifiers>();
     }
     auto output = transform_manager.Run(input, in_data, out_data);
 
@@ -67,7 +67,7 @@ Result Minify(std::string_view data, const Options& options) {
 
     return {
         .wgsl = result->wgsl,
-        .remappings = std::move(out_data.Get<Renamer::Data>()->remappings),
+        .remappings = std::move(out_data.Get<RenameIdentifiers::Data>()->remappings),
     };
 }
 

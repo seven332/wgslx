@@ -1,4 +1,4 @@
-#include "renamer.h"
+#include "rename_identifiers.h"
 
 #include <src/tint/lang/core/builtin_fn.h>
 #include <src/tint/lang/core/builtin_type.h>
@@ -31,8 +31,8 @@
 #include <unordered_set>
 #include <vector>
 
-TINT_INSTANTIATE_TYPEINFO(wgslx::minifier::Renamer);
-TINT_INSTANTIATE_TYPEINFO(wgslx::minifier::Renamer::Data);
+TINT_INSTANTIATE_TYPEINFO(wgslx::minifier::RenameIdentifiers);
+TINT_INSTANTIATE_TYPEINFO(wgslx::minifier::RenameIdentifiers::Data);
 
 namespace wgslx::minifier {
 
@@ -339,7 +339,7 @@ static tint::Hashset<const tint::ast::Identifier*, 16> CollectPreservedIdentifie
     return preserved_identifiers;
 }
 
-Renamer::ApplyResult Renamer::Apply(
+RenameIdentifiers::ApplyResult RenameIdentifiers::Apply(
     const tint::Program& program,
     const tint::ast::transform::DataMap& inputs,
     tint::ast::transform::DataMap& outputs

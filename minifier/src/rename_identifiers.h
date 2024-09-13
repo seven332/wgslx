@@ -7,7 +7,7 @@
 
 namespace wgslx::minifier {
 
-class Renamer final : public tint::Castable<Renamer, tint::ast::transform::Transform> {
+class RenameIdentifiers final : public tint::Castable<RenameIdentifiers, tint::ast::transform::Transform> {
  public:
     using Remappings = std::unordered_map<std::string, std::string>;
 
