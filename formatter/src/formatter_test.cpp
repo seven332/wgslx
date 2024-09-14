@@ -40,4 +40,15 @@ TEST(formatter, enable) {
     EXPECT_EQ(result.wgsl, "enable clip_distances,dual_source_blending,f16;");
 }
 
+TEST(formatter, require) {
+    auto program = Parse(
+        "requires readonly_and_readwrite_storage_textures, packed_4x8_integer_dot_product; requires pointer_composite_access, pointer_composite_access;"
+    );
+    auto result = formatter::Format(program, {});
+    EXPECT_EQ(
+        result.wgsl,
+        "requires packed_4x8_integer_dot_product,pointer_composite_access,readonly_and_readwrite_storage_textures;"
+    );
+}
+
 }  // namespace wgslx::minifier

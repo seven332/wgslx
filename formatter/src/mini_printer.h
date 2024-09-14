@@ -21,6 +21,7 @@ class MiniPrinter {
     std::stringstream ss_;
 
     void EmitEnables();
+    void EmitRequires();
 };
 
 }  // namespace wgslx::formatter
