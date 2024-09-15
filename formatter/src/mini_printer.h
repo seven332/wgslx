@@ -22,6 +22,7 @@ class MiniPrinter {
 
     void EmitEnables();
     void EmitRequires();
+    void EmitDiagnosticDirectives();
 };
 
 }  // namespace wgslx::formatter

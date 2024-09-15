@@ -51,4 +51,10 @@ TEST(formatter, require) {
     );
 }
 
+TEST(formatter, diagnostic) {
+    auto program = Parse("diagnostic(off, test.a); diagnostic(error, test.b);");
+    auto result = formatter::Format(program, {});
+    EXPECT_EQ(result.wgsl, "diagnostic(off,test.a);diagnostic(error,test.b);");
+}
+
 }  // namespace wgslx::minifier

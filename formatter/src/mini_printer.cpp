@@ -1,5 +1,6 @@
 #include "mini_printer.h"
 
+#include <src/tint/lang/wgsl/ast/diagnostic_rule_name.h>
 #include <src/tint/lang/wgsl/ast/enable.h>
 #include <src/tint/lang/wgsl/ast/module.h>
 #include <src/tint/lang/wgsl/features/language_feature.h>
@@ -14,13 +15,13 @@ namespace wgslx::formatter {
 bool MiniPrinter::Generate() {
     EmitEnables();
     EmitRequires();
+    EmitDiagnosticDirectives();
     return true;
 }
 
 void MiniPrinter::EmitEnables() {
-    const auto& enables = program_->AST().Enables();
     std::vector<tint::wgsl::Extension> extensions;
-    for (const auto* enable : enables) {
+    for (const auto* enable : program_->AST().Enables()) {
         for (const auto* extension : enable->extensions) {
             extensions.emplace_back(extension->name);
         }
@@ -44,9 +45,8 @@ void MiniPrinter::EmitEnables() {
 }
 
 void MiniPrinter::EmitRequires() {
-    const auto& requireList = program_->AST().Requires();
     std::vector<tint::wgsl::LanguageFeature> features;
-    for (const auto* require : requireList) {
+    for (const auto* require : program_->AST().Requires()) {
         for (auto feature : require->features) {
             features.emplace_back(feature);
         }
@@ -66,6 +66,15 @@ void MiniPrinter::EmitRequires() {
             ss_ << tint::wgsl::ToString(*iter);
         }
         ss_ << ";";
+    }
+}
+
+void MiniPrinter::EmitDiagnosticDirectives() {
+    for (auto diagnostic : program_->AST().DiagnosticDirectives()) {
+        if (diagnostic->control.rule_name) {
+            ss_ << "diagnostic(" << diagnostic->control.severity << "," << diagnostic->control.rule_name->String()
+                << ");";
+        }
     }
 }
 
