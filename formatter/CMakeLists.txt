@@ -1,4 +1,9 @@
-add_library(formatter src/formatter.cpp src/mini_printer.cpp)
+add_library(
+    formatter
+    src/formatter.cpp
+    src/mini_printer.cpp
+    src/operator_group.cpp
+)
 target_compile_options(formatter PRIVATE "-fno-exceptions" "-fno-rtti")
 target_include_directories(formatter PUBLIC include PRIVATE src)
 target_link_libraries(formatter PUBLIC tint_api PRIVATE range-v3)
