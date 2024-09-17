@@ -41,7 +41,9 @@
 #include <src/tint/lang/wgsl/ast/var.h>
 #include <src/tint/lang/wgsl/ast/workgroup_attribute.h>
 #include <src/tint/lang/wgsl/features/language_feature.h>
+#include <src/tint/lang/wgsl/sem/struct.h>
 #include <src/tint/utils/rtti/switch.h>
+#include <src/tint/utils/text/string.h>
 
 #include <algorithm>
 #include <range/v3/range/conversion.hpp>
@@ -185,7 +187,71 @@ void MiniPrinter::EmitVariable(const tint::ast::Variable* var) {
 
 void MiniPrinter::EmitConstAssert(const tint::ast::ConstAssert* ca) {}
 
-void MiniPrinter::EmitStructType(const tint::ast::Struct* str) {}
+void MiniPrinter::EmitStructType(const tint::ast::Struct* str) {
+    if (str->attributes.Length()) {
+        EmitAttributes(str->attributes);
+    }
+    ss_ << "struct " << str->name->symbol.Name() << "{";
+
+    tint::Hashset<std::string, 8> member_names;
+    for (auto* mem : str->members) {
+        member_names.Add(std::string(mem->name->symbol.NameView()));
+    }
+    size_t padding_idx = 0;
+    auto new_padding_name = [&] {
+        while (true) {
+            auto name = "padding_" + tint::ToString(padding_idx++);
+            if (member_names.Add(name)) {
+                return name;
+            }
+        }
+    };
+
+    auto add_padding = [&](uint32_t size) {
+        ss_ << "@size(" << size << ")";
+        // Note: u32 is the smallest primitive we currently support. When WGSL
+        // supports smaller types, this will need to be updated.
+        ss_ << new_padding_name() << ":u32,";
+    };
+
+    uint32_t offset = 0;
+    for (auto* mem : str->members) {
+        // TODO(crbug.com/tint/798) move the @offset attribute handling to the transform::Wgsl
+        // sanitizer.
+        if (auto* mem_sem = program_->Sem().Get(mem)) {
+            offset = tint::RoundUp(mem_sem->Align(), offset);
+            if (uint32_t padding = mem_sem->Offset() - offset) {
+                add_padding(padding);
+                offset += padding;
+            }
+            offset += mem_sem->Size();
+        }
+
+        // Offset attributes no longer exist in the WGSL spec, but are emitted
+        // by the SPIR-V reader and are consumed by the Resolver(). These should not
+        // be emitted, but instead struct padding fields should be emitted.
+        tint::Vector<const tint::ast::Attribute*, 4> attributes_sanitized;
+        attributes_sanitized.Reserve(mem->attributes.Length());
+        for (auto* attr : mem->attributes) {
+            if (attr->Is<tint::ast::StructMemberOffsetAttribute>()) {
+                // Skip
+            } else {
+                attributes_sanitized.Push(attr);
+            }
+        }
+
+        if (!attributes_sanitized.IsEmpty()) {
+            EmitAttributes(attributes_sanitized);
+        }
+
+        ss_ << mem->name->symbol.Name() << ":";
+        EmitExpression(mem->type, OperatorPosition::Left, OperatorGroup::None);
+        if (mem != str->members.Back()) {
+            ss_ << ",";
+        }
+    }
+    ss_ << "}";
+}
 
 void MiniPrinter::EmitAttributes(tint::VectorRef<const tint::ast::Attribute*> attrs) {
     for (auto* attr : attrs) {

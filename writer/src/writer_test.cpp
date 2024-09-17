@@ -152,4 +152,10 @@ TEST(writer, attributes) {
     EXPECT_EQ(result.wgsl, "@group(1)@binding(0)var a:sampler;");
 }
 
+TEST(writer, struct) {
+    auto program = Parse("struct A {u: f32, v: f32, w: vec2<f32>, @size(16) x: f32}");
+    auto result = Write(program, {});
+    EXPECT_EQ(result.wgsl, "struct A{u:f32,v:f32,w:vec2<f32>,@size(16)x:f32}");
+}
+
 }  // namespace wgslx::writer
