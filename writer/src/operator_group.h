@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-namespace wgslx::formatter {
+namespace wgslx::writer {
 
 enum class OperatorGroup : std::uint8_t {
     None,
@@ -32,4 +32,4 @@ OperatorGroup toOperatorGroup(tint::core::BinaryOp op);
 
 bool isParenthesisRequired(OperatorGroup self, OperatorPosition position, OperatorGroup parent);
 
-}  // namespace wgslx::formatter
+}  // namespace wgslx::writer

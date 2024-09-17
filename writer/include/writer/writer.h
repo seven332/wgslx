@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace wgslx::formatter {
+namespace wgslx::writer {
 
 struct Options {};
 
@@ -14,6 +14,6 @@ struct Result {
     bool failed = false;
 };
 
-Result Format(const tint::Program& program, const Options& options);
+Result Write(const tint::Program& program, const Options& options);
 
-}  // namespace wgslx::formatter
+}  // namespace wgslx::writer

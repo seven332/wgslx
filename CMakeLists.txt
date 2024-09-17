@@ -9,5 +9,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS False)
 
 add_subdirectory(third_party EXCLUDE_FROM_ALL SYSTEM)
-add_subdirectory(formatter)
+add_subdirectory(writer)
 add_subdirectory(minifier)

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace wgslx::formatter {
+namespace wgslx::writer {
 
 OperatorGroup toOperatorGroup(tint::core::BinaryOp op) {
     switch (op) {
@@ -83,4 +83,4 @@ bool isParenthesisRequired(OperatorGroup self, OperatorPosition position, Operat
     }
 }
 
-}  // namespace wgslx::formatter
+}  // namespace wgslx::writer

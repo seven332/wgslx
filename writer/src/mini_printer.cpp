@@ -34,7 +34,7 @@
 
 #include "operator_group.h"
 
-namespace wgslx::formatter {
+namespace wgslx::writer {
 
 bool MiniPrinter::Generate() {
     EmitEnables();
@@ -376,4 +376,4 @@ std::string MiniPrinter::Result() {
     return std::move(ss_).str();
 }
 
-}  // namespace wgslx::formatter
+}  // namespace wgslx::writer

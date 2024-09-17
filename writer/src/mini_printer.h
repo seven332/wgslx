@@ -16,7 +16,7 @@
 
 #include "operator_group.h"
 
-namespace wgslx::formatter {
+namespace wgslx::writer {
 
 class MiniPrinter {
  public:
@@ -51,4 +51,4 @@ class MiniPrinter {
     void EmitUnaryOp(const tint::ast::UnaryOpExpression* expr, OperatorPosition position, OperatorGroup parent);
 };
 
-}  // namespace wgslx::formatter
+}  // namespace wgslx::writer
