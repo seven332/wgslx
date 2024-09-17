@@ -36,13 +36,22 @@ OperatorGroup toOperatorGroup(tint::core::BinaryOp op) {
     }
 }
 
-static bool isGroup1(OperatorGroup group) {
+static bool isNotMixable(OperatorGroup group) {
     return group == OperatorGroup::ShortCircuitOR || group == OperatorGroup::ShortCircuitAND ||
            group == OperatorGroup::BinaryOR || group == OperatorGroup::BinaryAND || group == OperatorGroup::BinaryXOR;
 }
 
-static bool isGroup2(OperatorGroup group) {
+static bool isAssociativityRequiresParentheses(OperatorGroup group) {
     return group == OperatorGroup::Shift || group == OperatorGroup::Relational;
+}
+
+static bool isBindingUnary(OperatorGroup group) {
+    return group == OperatorGroup::Shift || group == OperatorGroup::BinaryAND || group == OperatorGroup::BinaryXOR ||
+           group == OperatorGroup::BinaryOR;
+}
+
+static bool isBindingRelational(OperatorGroup group) {
+    return group == OperatorGroup::ShortCircuitAND || group == OperatorGroup::ShortCircuitOR;
 }
 
 bool isParenthesisRequired(OperatorGroup self, OperatorPosition position, OperatorGroup parent) {
@@ -50,21 +59,27 @@ bool isParenthesisRequired(OperatorGroup self, OperatorPosition position, Operat
         return false;
     }
 
-    if (isGroup1(self) && isGroup1(parent) && self != parent) {
+    if (isNotMixable(self) && isNotMixable(parent) && self != parent) {
         return true;
     }
 
-    if (isGroup1(self) && self == parent) {
+    if (isAssociativityRequiresParentheses(self) && self == parent) {
+        return true;
+    }
+
+    if (isBindingUnary(parent) && self > OperatorGroup::Unary) {
+        return true;
+    }
+
+    if (isBindingRelational(parent) && self > OperatorGroup::Relational) {
         return true;
     }
 
     switch (position) {
     case OperatorPosition::Left:
-        return parent == OperatorGroup::Unary ? static_cast<std::uint8_t>(self) >= static_cast<std::uint8_t>(parent)
-                                              : static_cast<std::uint8_t>(self) > static_cast<std::uint8_t>(parent);
+        return parent == OperatorGroup::Unary ? self >= parent : self > parent;
     case OperatorPosition::Right:
-        return parent == OperatorGroup::Unary ? static_cast<std::uint8_t>(self) > static_cast<std::uint8_t>(parent)
-                                              : static_cast<std::uint8_t>(self) >= static_cast<std::uint8_t>(parent);
+        return parent == OperatorGroup::Unary ? self > parent : self >= parent;
     }
 }
 
