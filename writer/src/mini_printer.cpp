@@ -2,28 +2,44 @@
 
 #include <src/tint/lang/wgsl/ast/alias.h>
 #include <src/tint/lang/wgsl/ast/binary_expression.h>
+#include <src/tint/lang/wgsl/ast/blend_src_attribute.h>
 #include <src/tint/lang/wgsl/ast/bool_literal_expression.h>
 #include <src/tint/lang/wgsl/ast/call_expression.h>
+#include <src/tint/lang/wgsl/ast/color_attribute.h>
 #include <src/tint/lang/wgsl/ast/const.h>
+#include <src/tint/lang/wgsl/ast/diagnostic_attribute.h>
 #include <src/tint/lang/wgsl/ast/diagnostic_rule_name.h>
 #include <src/tint/lang/wgsl/ast/enable.h>
 #include <src/tint/lang/wgsl/ast/float_literal_expression.h>
+#include <src/tint/lang/wgsl/ast/group_attribute.h>
+#include <src/tint/lang/wgsl/ast/id_attribute.h>
 #include <src/tint/lang/wgsl/ast/identifier.h>
 #include <src/tint/lang/wgsl/ast/identifier_expression.h>
 #include <src/tint/lang/wgsl/ast/index_accessor_expression.h>
 #include <src/tint/lang/wgsl/ast/int_literal_expression.h>
+#include <src/tint/lang/wgsl/ast/internal_attribute.h>
+#include <src/tint/lang/wgsl/ast/interpolate_attribute.h>
+#include <src/tint/lang/wgsl/ast/invariant_attribute.h>
 #include <src/tint/lang/wgsl/ast/let.h>
 #include <src/tint/lang/wgsl/ast/literal_expression.h>
+#include <src/tint/lang/wgsl/ast/location_attribute.h>
 #include <src/tint/lang/wgsl/ast/member_accessor_expression.h>
 #include <src/tint/lang/wgsl/ast/module.h>
+#include <src/tint/lang/wgsl/ast/must_use_attribute.h>
 #include <src/tint/lang/wgsl/ast/override.h>
 #include <src/tint/lang/wgsl/ast/phony_expression.h>
+#include <src/tint/lang/wgsl/ast/stage_attribute.h>
+#include <src/tint/lang/wgsl/ast/stride_attribute.h>
 #include <src/tint/lang/wgsl/ast/struct.h>
+#include <src/tint/lang/wgsl/ast/struct_member_align_attribute.h>
+#include <src/tint/lang/wgsl/ast/struct_member_offset_attribute.h>
+#include <src/tint/lang/wgsl/ast/struct_member_size_attribute.h>
 #include <src/tint/lang/wgsl/ast/templated_identifier.h>
 #include <src/tint/lang/wgsl/ast/type.h>
 #include <src/tint/lang/wgsl/ast/type_decl.h>
 #include <src/tint/lang/wgsl/ast/unary_op_expression.h>
 #include <src/tint/lang/wgsl/ast/var.h>
+#include <src/tint/lang/wgsl/ast/workgroup_attribute.h>
 #include <src/tint/lang/wgsl/features/language_feature.h>
 #include <src/tint/utils/rtti/switch.h>
 
@@ -108,11 +124,12 @@ void MiniPrinter::EmitRequires() {
 
 void MiniPrinter::EmitDiagnosticDirectives() {
     for (auto diagnostic : program_->AST().DiagnosticDirectives()) {
-        if (diagnostic->control.rule_name) {
-            ss_ << "diagnostic(" << diagnostic->control.severity << "," << diagnostic->control.rule_name->String()
-                << ");";
-        }
+        EmitDiagnosticControl(diagnostic->control);
     }
+}
+
+void MiniPrinter::EmitDiagnosticControl(const tint::ast::DiagnosticControl& diagnostic) {
+    ss_ << "diagnostic(" << diagnostic.severity << "," << diagnostic.rule_name->String() << ");";
 }
 
 void MiniPrinter::EmitTypeDecl(const tint::ast::TypeDecl* td) {
@@ -133,7 +150,6 @@ void MiniPrinter::EmitFunction(const tint::ast::Function* func) {}
 void MiniPrinter::EmitVariable(const tint::ast::Variable* var) {
     if (!var->attributes.IsEmpty()) {
         EmitAttributes(var->attributes);
-        ss_ << " ";
     }
 
     Switch(
@@ -171,7 +187,109 @@ void MiniPrinter::EmitConstAssert(const tint::ast::ConstAssert* ca) {}
 
 void MiniPrinter::EmitStructType(const tint::ast::Struct* str) {}
 
-void MiniPrinter::EmitAttributes(tint::VectorRef<const tint::ast::Attribute*> attrs) {}
+void MiniPrinter::EmitAttributes(tint::VectorRef<const tint::ast::Attribute*> attrs) {
+    for (auto* attr : attrs) {
+        ss_ << "@";
+        Switch(
+            attr,
+            [&](const tint::ast::WorkgroupAttribute* workgroup) {
+                auto values = workgroup->Values();
+                ss_ << "workgroup_size(";
+                for (size_t i = 0; i < 3; i++) {
+                    if (values[i]) {
+                        if (i > 0) {
+                            ss_ << ",";
+                        }
+                        EmitExpression(values[i], OperatorPosition::Left, OperatorGroup::None);
+                    }
+                }
+                ss_ << ")";
+            },
+            [&](const tint::ast::StageAttribute* stage) {
+                ss_ << stage->stage;
+                ss_ << " ";
+            },
+            [&](const tint::ast::BindingAttribute* binding) {
+                ss_ << "binding(";
+                EmitExpression(binding->expr, OperatorPosition::Left, OperatorGroup::None);
+                ss_ << ")";
+            },
+            [&](const tint::ast::GroupAttribute* group) {
+                ss_ << "group(";
+                EmitExpression(group->expr, OperatorPosition::Left, OperatorGroup::None);
+                ss_ << ")";
+            },
+            [&](const tint::ast::LocationAttribute* location) {
+                ss_ << "location(";
+                EmitExpression(location->expr, OperatorPosition::Left, OperatorGroup::None);
+                ss_ << ")";
+            },
+            [&](const tint::ast::ColorAttribute* color) {
+                ss_ << "color(";
+                EmitExpression(color->expr, OperatorPosition::Left, OperatorGroup::None);
+                ss_ << ")";
+            },
+            [&](const tint::ast::BlendSrcAttribute* blend_src) {
+                ss_ << "blend_src(";
+                EmitExpression(blend_src->expr, OperatorPosition::Left, OperatorGroup::None);
+                ss_ << ")";
+            },
+            [&](const tint::ast::BuiltinAttribute* builtin) {
+                ss_ << "builtin(";
+                ss_ << tint::core::ToString(builtin->builtin);
+                ss_ << ")";
+            },
+            [&](const tint::ast::DiagnosticAttribute* diagnostic) { EmitDiagnosticControl(diagnostic->control); },
+            [&](const tint::ast::InterpolateAttribute* interpolate) {
+                ss_ << "interpolate(";
+                ss_ << tint::core::ToString(interpolate->interpolation.type);
+                if (interpolate->interpolation.sampling != tint::core::InterpolationSampling::kUndefined) {
+                    ss_ << ",";
+                    ss_ << tint::core::ToString(interpolate->interpolation.sampling);
+                }
+                ss_ << ")";
+            },
+            [&](const tint::ast::InvariantAttribute*) { ss_ << "invariant "; },
+            [&](const tint::ast::IdAttribute* override_deco) {
+                ss_ << "id(";
+                EmitExpression(override_deco->expr, OperatorPosition::Left, OperatorGroup::None);
+                ss_ << ")";
+            },
+            [&](const tint::ast::MustUseAttribute*) { ss_ << "must_use "; },
+            [&](const tint::ast::StructMemberOffsetAttribute* offset) {
+                ss_ << "offset(";
+                EmitExpression(offset->expr, OperatorPosition::Left, OperatorGroup::None);
+                ss_ << ")";
+            },
+            [&](const tint::ast::StructMemberSizeAttribute* size) {
+                ss_ << "size(";
+                EmitExpression(size->expr, OperatorPosition::Left, OperatorGroup::None);
+                ss_ << ")";
+            },
+            [&](const tint::ast::StructMemberAlignAttribute* align) {
+                ss_ << "align(";
+                EmitExpression(align->expr, OperatorPosition::Left, OperatorGroup::None);
+                ss_ << ")";
+            },
+            [&](const tint::ast::StrideAttribute* stride) {
+                ss_ << "stride(";
+                ss_ << stride->stride;
+                ss_ << ")";
+            },
+            [&](const tint::ast::InternalAttribute* internal) {
+                ss_ << "internal(";
+                ss_ << internal->InternalName();
+                ss_ << ")";
+            },
+            [&](const tint::ast::InputAttachmentIndexAttribute* index) {
+                ss_ << "input_attachment_index(";
+                EmitExpression(index->expr, OperatorPosition::Left, OperatorGroup::None);
+                ss_ << ")";
+            },
+            TINT_ICE_ON_NO_MATCH
+        );
+    }
+}
 
 void MiniPrinter::EmitExpression(const tint::ast::Expression* expr, OperatorPosition position, OperatorGroup parent) {
     Switch(
@@ -315,7 +433,6 @@ void MiniPrinter::EmitIdentifier(const tint::ast::Identifier* ident) {
     if (auto* tmpl_ident = ident->As<tint::ast::TemplatedIdentifier>()) {
         if (!tmpl_ident->attributes.IsEmpty()) {
             EmitAttributes(tmpl_ident->attributes);
-            ss_ << " ";
         }
         ss_ << ident->symbol.Name() << "<";
         for (auto* expr : tmpl_ident->arguments) {

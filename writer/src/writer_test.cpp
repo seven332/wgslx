@@ -8,6 +8,7 @@
 #include <src/tint/lang/wgsl/writer/writer.h>
 #include <src/tint/utils/diagnostic/diagnostic.h>
 
+#include <iostream>
 #include <random>
 #include <range/v3/algorithm/fold_left.hpp>
 #include <range/v3/range/primitives.hpp>
@@ -32,6 +33,11 @@ static tint::Program Parse(const char* code) {
     auto errors = program.Diagnostics() | ranges::views::filter([](const tint::diag::Diagnostic& diag) {
                       return diag.severity == tint::diag::Severity::Error;
                   });
+
+    for (const auto& e : errors) {
+        std::cout << e.message.Plain() << std::endl;
+    }
+
     EXPECT_EQ(errors.begin(), errors.end());
     return program;
 }
@@ -138,6 +144,12 @@ TEST(writer, expression) {
         auto r2 = tint::wgsl::writer::Generate(program2, {});
         EXPECT_EQ(r1->wgsl, r2->wgsl);
     }
+}
+
+TEST(writer, attributes) {
+    auto program = Parse("@group(1) @binding(0) var a: sampler;");
+    auto result = Write(program, {});
+    EXPECT_EQ(result.wgsl, "@group(1)@binding(0)var a:sampler;");
 }
 
 }  // namespace wgslx::writer
