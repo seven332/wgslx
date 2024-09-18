@@ -1,12 +1,21 @@
 #pragma once
 
+#include <src/tint/lang/wgsl/ast/assignment_statement.h>
 #include <src/tint/lang/wgsl/ast/binary_expression.h>
+#include <src/tint/lang/wgsl/ast/break_if_statement.h>
+#include <src/tint/lang/wgsl/ast/compound_assignment_statement.h>
 #include <src/tint/lang/wgsl/ast/const_assert.h>
 #include <src/tint/lang/wgsl/ast/diagnostic_control.h>
 #include <src/tint/lang/wgsl/ast/function.h>
+#include <src/tint/lang/wgsl/ast/if_statement.h>
+#include <src/tint/lang/wgsl/ast/increment_decrement_statement.h>
 #include <src/tint/lang/wgsl/ast/index_accessor_expression.h>
 #include <src/tint/lang/wgsl/ast/literal_expression.h>
+#include <src/tint/lang/wgsl/ast/loop_statement.h>
 #include <src/tint/lang/wgsl/ast/member_accessor_expression.h>
+#include <src/tint/lang/wgsl/ast/return_statement.h>
+#include <src/tint/lang/wgsl/ast/statement.h>
+#include <src/tint/lang/wgsl/ast/switch_statement.h>
 #include <src/tint/lang/wgsl/ast/type_decl.h>
 #include <src/tint/lang/wgsl/ast/variable.h>
 #include <src/tint/lang/wgsl/program/program.h>
@@ -37,6 +46,18 @@ class MiniPrinter {
     void EmitDiagnosticControl(const tint::ast::DiagnosticControl& diagnostic);
     void EmitTypeDecl(const tint::ast::TypeDecl* td);
     void EmitFunction(const tint::ast::Function* func);
+    void EmitStatement(const tint::ast::Statement* stmt);
+    void EmitAssign(const tint::ast::AssignmentStatement* stmt);
+    void EmitBlock(const tint::ast::BlockStatement* stmt);
+    void EmitBreakIf(const tint::ast::BreakIfStatement* b);
+    void EmitCompoundAssign(const tint::ast::CompoundAssignmentStatement* stmt);
+    void EmitIf(const tint::ast::IfStatement* stmt);
+    void EmitIncrementDecrement(const tint::ast::IncrementDecrementStatement* stmt);
+    void EmitLoop(const tint::ast::LoopStatement* stmt);
+    void EmitForLoop(const tint::ast::ForLoopStatement* stmt);
+    void EmitWhile(const tint::ast::WhileStatement* stmt);
+    void EmitReturn(const tint::ast::ReturnStatement* stmt);
+    void EmitSwitch(const tint::ast::SwitchStatement* stmt);
     void EmitVariable(const tint::ast::Variable* var);
     void EmitConstAssert(const tint::ast::ConstAssert* ca);
     void EmitStructType(const tint::ast::Struct* str);

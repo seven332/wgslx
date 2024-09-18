@@ -1,20 +1,32 @@
 #include "mini_printer.h"
 
 #include <src/tint/lang/wgsl/ast/alias.h>
+#include <src/tint/lang/wgsl/ast/assignment_statement.h>
 #include <src/tint/lang/wgsl/ast/binary_expression.h>
 #include <src/tint/lang/wgsl/ast/blend_src_attribute.h>
+#include <src/tint/lang/wgsl/ast/block_statement.h>
 #include <src/tint/lang/wgsl/ast/bool_literal_expression.h>
+#include <src/tint/lang/wgsl/ast/break_if_statement.h>
+#include <src/tint/lang/wgsl/ast/break_statement.h>
 #include <src/tint/lang/wgsl/ast/call_expression.h>
+#include <src/tint/lang/wgsl/ast/call_statement.h>
 #include <src/tint/lang/wgsl/ast/color_attribute.h>
+#include <src/tint/lang/wgsl/ast/compound_assignment_statement.h>
 #include <src/tint/lang/wgsl/ast/const.h>
+#include <src/tint/lang/wgsl/ast/const_assert.h>
+#include <src/tint/lang/wgsl/ast/continue_statement.h>
 #include <src/tint/lang/wgsl/ast/diagnostic_attribute.h>
 #include <src/tint/lang/wgsl/ast/diagnostic_rule_name.h>
+#include <src/tint/lang/wgsl/ast/discard_statement.h>
 #include <src/tint/lang/wgsl/ast/enable.h>
 #include <src/tint/lang/wgsl/ast/float_literal_expression.h>
+#include <src/tint/lang/wgsl/ast/for_loop_statement.h>
 #include <src/tint/lang/wgsl/ast/group_attribute.h>
 #include <src/tint/lang/wgsl/ast/id_attribute.h>
 #include <src/tint/lang/wgsl/ast/identifier.h>
 #include <src/tint/lang/wgsl/ast/identifier_expression.h>
+#include <src/tint/lang/wgsl/ast/if_statement.h>
+#include <src/tint/lang/wgsl/ast/increment_decrement_statement.h>
 #include <src/tint/lang/wgsl/ast/index_accessor_expression.h>
 #include <src/tint/lang/wgsl/ast/int_literal_expression.h>
 #include <src/tint/lang/wgsl/ast/internal_attribute.h>
@@ -23,22 +35,27 @@
 #include <src/tint/lang/wgsl/ast/let.h>
 #include <src/tint/lang/wgsl/ast/literal_expression.h>
 #include <src/tint/lang/wgsl/ast/location_attribute.h>
+#include <src/tint/lang/wgsl/ast/loop_statement.h>
 #include <src/tint/lang/wgsl/ast/member_accessor_expression.h>
 #include <src/tint/lang/wgsl/ast/module.h>
 #include <src/tint/lang/wgsl/ast/must_use_attribute.h>
 #include <src/tint/lang/wgsl/ast/override.h>
 #include <src/tint/lang/wgsl/ast/phony_expression.h>
+#include <src/tint/lang/wgsl/ast/return_statement.h>
 #include <src/tint/lang/wgsl/ast/stage_attribute.h>
 #include <src/tint/lang/wgsl/ast/stride_attribute.h>
 #include <src/tint/lang/wgsl/ast/struct.h>
 #include <src/tint/lang/wgsl/ast/struct_member_align_attribute.h>
 #include <src/tint/lang/wgsl/ast/struct_member_offset_attribute.h>
 #include <src/tint/lang/wgsl/ast/struct_member_size_attribute.h>
+#include <src/tint/lang/wgsl/ast/switch_statement.h>
 #include <src/tint/lang/wgsl/ast/templated_identifier.h>
 #include <src/tint/lang/wgsl/ast/type.h>
 #include <src/tint/lang/wgsl/ast/type_decl.h>
 #include <src/tint/lang/wgsl/ast/unary_op_expression.h>
 #include <src/tint/lang/wgsl/ast/var.h>
+#include <src/tint/lang/wgsl/ast/variable_decl_statement.h>
+#include <src/tint/lang/wgsl/ast/while_statement.h>
 #include <src/tint/lang/wgsl/ast/workgroup_attribute.h>
 #include <src/tint/lang/wgsl/features/language_feature.h>
 #include <src/tint/lang/wgsl/sem/struct.h>
@@ -147,12 +164,158 @@ void MiniPrinter::EmitTypeDecl(const tint::ast::TypeDecl* td) {
     );
 }
 
-void MiniPrinter::EmitFunction(const tint::ast::Function* func) {}
+void MiniPrinter::EmitFunction(const tint::ast::Function* func) {
+    // TODO:
+}
+
+void MiniPrinter::EmitStatement(const tint::ast::Statement* stmt) {
+    Switch(
+        stmt,
+        [&](const tint::ast::AssignmentStatement* a) { EmitAssign(a); },
+        [&](const tint::ast::BlockStatement* b) { EmitBlock(b); },
+        [&](const tint::ast::BreakStatement* b) { ss_ << "break;"; },
+        [&](const tint::ast::BreakIfStatement* b) { EmitBreakIf(b); },
+        [&](const tint::ast::CallStatement* c) {
+            EmitCall(c->expr);
+            ss_ << ";";
+        },
+        [&](const tint::ast::CompoundAssignmentStatement* c) { EmitCompoundAssign(c); },
+        [&](const tint::ast::ContinueStatement* c) { ss_ << "continue;"; },
+        [&](const tint::ast::DiscardStatement* d) { ss_ << "discard;"; },
+        [&](const tint::ast::IfStatement* i) { EmitIf(i); },
+        [&](const tint::ast::IncrementDecrementStatement* l) { EmitIncrementDecrement(l); },
+        [&](const tint::ast::LoopStatement* l) { EmitLoop(l); },
+        [&](const tint::ast::ForLoopStatement* l) { EmitForLoop(l); },
+        [&](const tint::ast::WhileStatement* l) { EmitWhile(l); },
+        [&](const tint::ast::ReturnStatement* r) { EmitReturn(r); },
+        [&](const tint::ast::ConstAssert* c) { EmitConstAssert(c); },
+        [&](const tint::ast::SwitchStatement* s) { EmitSwitch(s); },
+        [&](const tint::ast::VariableDeclStatement* v) { EmitVariable(v->variable); },
+        TINT_ICE_ON_NO_MATCH
+    );
+}
+
+void MiniPrinter::EmitAssign(const tint::ast::AssignmentStatement* stmt) {
+    EmitExpression(stmt->lhs, OperatorPosition::Left, OperatorGroup::None);
+    ss_ << "=";
+    EmitExpression(stmt->rhs, OperatorPosition::Left, OperatorGroup::None);
+    ss_ << ";";
+}
+
+void MiniPrinter::EmitBlock(const tint::ast::BlockStatement* stmt) {
+    EmitAttributes(stmt->attributes);
+    ss_ << "{";
+    for (auto* s : stmt->statements) {
+        EmitStatement(s);
+    }
+    ss_ << "}";
+}
+
+void MiniPrinter::EmitBreakIf(const tint::ast::BreakIfStatement* b) {
+    ss_ << "break if ";
+    EmitExpression(b->condition, OperatorPosition::Left, OperatorGroup::None);
+    ss_ << ";";
+}
+
+void MiniPrinter::EmitCompoundAssign(const tint::ast::CompoundAssignmentStatement* stmt) {
+    EmitExpression(stmt->lhs, OperatorPosition::Left, OperatorGroup::None);
+    EmitBinaryOp(stmt->op);
+    ss_ << "=";
+    EmitExpression(stmt->rhs, OperatorPosition::Left, OperatorGroup::None);
+    ss_ << ";";
+}
+
+void MiniPrinter::EmitIf(const tint::ast::IfStatement* stmt) {
+    EmitAttributes(stmt->attributes);
+    ss_ << "if(";
+    EmitExpression(stmt->condition, OperatorPosition::Left, OperatorGroup::None);
+    ss_ << ")";
+    EmitStatement(stmt->body);
+    const auto* e = stmt->else_statement;
+    while (e) {
+        if (auto* elseif = e->As<tint::ast::IfStatement>()) {
+            ss_ << "else if(";
+            EmitExpression(elseif->condition, OperatorPosition::Left, OperatorGroup::None);
+            ss_ << ")";
+            EmitStatement(elseif->body);
+            e = elseif->else_statement;
+        } else {
+            auto* body = e->As<tint::ast::BlockStatement>();
+            ss_ << "else";
+            EmitStatement(body);
+            break;
+        }
+    }
+}
+
+void MiniPrinter::EmitIncrementDecrement(const tint::ast::IncrementDecrementStatement* stmt) {
+    EmitExpression(stmt->lhs, OperatorPosition::Left, OperatorGroup::None);
+    ss_ << (stmt->increment ? "++" : "--") << ";";
+}
+
+void MiniPrinter::EmitLoop(const tint::ast::LoopStatement* stmt) {
+    EmitAttributes(stmt->attributes);
+    ss_ << "loop";
+    EmitAttributes(stmt->body->attributes);
+    ss_ << "{";
+    for (auto* s : stmt->body->statements) {
+        EmitStatement(s);
+    }
+    if (stmt->continuing && !stmt->continuing->Empty()) {
+        ss_ << "continuing";
+        EmitAttributes(stmt->continuing->attributes);
+        ss_ << "{";
+        for (auto* s : stmt->continuing->statements) {
+            EmitStatement(s);
+        }
+        ss_ << "}";
+    }
+    ss_ << "}";
+}
+
+void MiniPrinter::EmitForLoop(const tint::ast::ForLoopStatement* stmt) {
+    EmitAttributes(stmt->attributes);
+    ss_ << "for(";
+    if (stmt->initializer) {
+        EmitStatement(stmt->initializer);
+    } else {
+        ss_ << ";";
+    }
+    if (auto* cond = stmt->condition) {
+        EmitExpression(cond, OperatorPosition::Left, OperatorGroup::None);
+    }
+    ss_ << ";";
+    if (stmt->continuing) {
+        EmitStatement(stmt->continuing);
+        ss_.seekp(-1, std::ios_base::end);
+    }
+    ss_ << ")";
+    EmitStatement(stmt->body);
+}
+
+void MiniPrinter::EmitWhile(const tint::ast::WhileStatement* stmt) {
+    EmitAttributes(stmt->attributes);
+    ss_ << "while(";
+    EmitExpression(stmt->condition, OperatorPosition::Left, OperatorGroup::None);
+    ss_ << ")";
+    EmitStatement(stmt->body);
+}
+
+void MiniPrinter::EmitReturn(const tint::ast::ReturnStatement* stmt) {
+    ss_ << "return";
+    if (stmt->value) {
+        ss_ << " ";
+        EmitExpression(stmt->value, OperatorPosition::Left, OperatorGroup::None);
+    }
+    ss_ << ";";
+}
+
+void MiniPrinter::EmitSwitch(const tint::ast::SwitchStatement* stmt) {
+    // TODO:
+}
 
 void MiniPrinter::EmitVariable(const tint::ast::Variable* var) {
-    if (!var->attributes.IsEmpty()) {
-        EmitAttributes(var->attributes);
-    }
+    EmitAttributes(var->attributes);
 
     Switch(
         var,
@@ -185,12 +348,12 @@ void MiniPrinter::EmitVariable(const tint::ast::Variable* var) {
     ss_ << ";";
 }
 
-void MiniPrinter::EmitConstAssert(const tint::ast::ConstAssert* ca) {}
+void MiniPrinter::EmitConstAssert(const tint::ast::ConstAssert* ca) {
+    // TODO:
+}
 
 void MiniPrinter::EmitStructType(const tint::ast::Struct* str) {
-    if (str->attributes.Length()) {
-        EmitAttributes(str->attributes);
-    }
+    EmitAttributes(str->attributes);
     ss_ << "struct " << str->name->symbol.Name() << "{";
 
     tint::Hashset<std::string, 8> member_names;
@@ -239,10 +402,7 @@ void MiniPrinter::EmitStructType(const tint::ast::Struct* str) {
                 attributes_sanitized.Push(attr);
             }
         }
-
-        if (!attributes_sanitized.IsEmpty()) {
-            EmitAttributes(attributes_sanitized);
-        }
+        EmitAttributes(attributes_sanitized);
 
         ss_ << mem->name->symbol.Name() << ":";
         EmitExpression(mem->type, OperatorPosition::Left, OperatorGroup::None);
@@ -497,9 +657,7 @@ void MiniPrinter::EmitIdentifier(const tint::ast::IdentifierExpression* expr) {
 
 void MiniPrinter::EmitIdentifier(const tint::ast::Identifier* ident) {
     if (auto* tmpl_ident = ident->As<tint::ast::TemplatedIdentifier>()) {
-        if (!tmpl_ident->attributes.IsEmpty()) {
-            EmitAttributes(tmpl_ident->attributes);
-        }
+        EmitAttributes(tmpl_ident->attributes);
         ss_ << ident->symbol.Name() << "<";
         for (auto* expr : tmpl_ident->arguments) {
             if (expr != tmpl_ident->arguments.Front()) {
