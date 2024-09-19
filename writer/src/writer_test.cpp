@@ -8,6 +8,8 @@
 #include <src/tint/lang/wgsl/writer/writer.h>
 #include <src/tint/utils/diagnostic/diagnostic.h>
 
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <random>
 #include <range/v3/algorithm/fold_left.hpp>
@@ -162,6 +164,52 @@ TEST(writer, function) {
     auto program = Parse("fn f1(a: i32, b: i32) -> i32 { return (a + b) / 2; }");
     auto result = Write(program, {});
     EXPECT_EQ(result.wgsl, "fn f1(a:i32,b:i32)->i32{return (a+b)/2;}");
+}
+
+TEST(writer, loop) {
+    auto program = Parse(
+        R"(
+@fragment
+fn main(@location(0) x : f32) {
+  @diagnostic(warning, derivative_uniformity)
+  loop {
+    _ = dpdx(1.0);
+    continuing {
+      break if x > 0.0;
+    }
+  }
+}
+)"
+    );
+    auto result = Write(program, {});
+    EXPECT_EQ(
+        result.wgsl,
+        "@fragment fn main(@location(0)x:f32){@diagnostic(warning,derivative_uniformity)loop{_=dpdx(1.0);continuing{break if x>0.0;}}}"
+    );
+}
+
+TEST(writer, dawn_files) {
+    auto dir = std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "third_party" / "dawn" /
+               "test" / "tint";
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(dir)) {
+        auto path = entry.path().string();
+        if (entry.is_regular_file() && path.ends_with(".wgsl") && !path.ends_with(".expected.wgsl")) {
+            std::fstream f(entry.path().c_str(), std::ios_base::in | std::ios_base::binary);
+            std::stringstream s;
+            s << f.rdbuf();
+            auto content = std::move(s).str();
+            if (content.find("enable ") != -1) {
+                continue;
+            }
+
+            auto program1 = Parse(content.c_str());
+            auto result = Write(program1, {});
+            auto program2 = Parse(result.wgsl.c_str());
+            auto r1 = tint::wgsl::writer::Generate(program1, {});
+            auto r2 = tint::wgsl::writer::Generate(program2, {});
+            ASSERT_EQ(r1->wgsl, r2->wgsl) << entry;
+        }
+    }
 }
 
 }  // namespace wgslx::writer

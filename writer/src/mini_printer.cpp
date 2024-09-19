@@ -60,6 +60,7 @@
 #include <src/tint/lang/wgsl/features/language_feature.h>
 #include <src/tint/lang/wgsl/sem/struct.h>
 #include <src/tint/utils/rtti/switch.h>
+#include <src/tint/utils/strconv/float_to_string.h>
 #include <src/tint/utils/text/string.h>
 
 #include <algorithm>
@@ -144,11 +145,12 @@ void MiniPrinter::EmitRequires() {
 void MiniPrinter::EmitDiagnosticDirectives() {
     for (auto diagnostic : program_->AST().DiagnosticDirectives()) {
         EmitDiagnosticControl(diagnostic->control);
+        ss_ << ";";
     }
 }
 
 void MiniPrinter::EmitDiagnosticControl(const tint::ast::DiagnosticControl& diagnostic) {
-    ss_ << "diagnostic(" << diagnostic.severity << "," << diagnostic.rule_name->String() << ");";
+    ss_ << "diagnostic(" << diagnostic.severity << "," << diagnostic.rule_name->String() << ")";
 }
 
 void MiniPrinter::EmitTypeDecl(const tint::ast::TypeDecl* td) {
@@ -731,7 +733,13 @@ void MiniPrinter::EmitLiteral(const tint::ast::LiteralExpression* lit) {
     Switch(
         lit,
         [&](const tint::ast::BoolLiteralExpression* l) { ss_ << (l->value ? "true" : "false"); },
-        [&](const tint::ast::FloatLiteralExpression* l) { ss_ << l->value << l->suffix; },
+        [&](const tint::ast::FloatLiteralExpression* l) {
+            if (l->suffix == tint::ast::FloatLiteralExpression::Suffix::kNone) {
+                ss_ << tint::strconv::DoubleToBitPreservingString(l->value);
+            } else {
+                ss_ << tint::strconv::FloatToBitPreservingString(static_cast<float>(l->value)) << l->suffix;
+            }
+        },
         [&](const tint::ast::IntLiteralExpression* l) { ss_ << l->value << l->suffix; },  //
         TINT_ICE_ON_NO_MATCH
     );
