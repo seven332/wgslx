@@ -7,7 +7,7 @@
 namespace wgslx::writer {
 
 Result Write(const tint::Program& program, const Options& options) {
-    MiniPrinter printer(&program);
+    MiniPrinter printer(&program, &options);
     printer.Generate();
     return {
         .wgsl = printer.Result(),

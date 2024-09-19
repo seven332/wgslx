@@ -6,7 +6,9 @@
 
 namespace wgslx::writer {
 
-struct Options {};
+struct Options {
+    bool precise_float = false;
+};
 
 struct Result {
     std::string wgsl;

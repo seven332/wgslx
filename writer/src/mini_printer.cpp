@@ -1,5 +1,6 @@
 #include "mini_printer.h"
 
+#include <__format/format_functions.h>
 #include <src/tint/lang/wgsl/ast/alias.h>
 #include <src/tint/lang/wgsl/ast/assignment_statement.h>
 #include <src/tint/lang/wgsl/ast/binary_expression.h>
@@ -734,10 +735,18 @@ void MiniPrinter::EmitLiteral(const tint::ast::LiteralExpression* lit) {
         lit,
         [&](const tint::ast::BoolLiteralExpression* l) { ss_ << (l->value ? "true" : "false"); },
         [&](const tint::ast::FloatLiteralExpression* l) {
-            if (l->suffix == tint::ast::FloatLiteralExpression::Suffix::kNone) {
-                ss_ << tint::strconv::DoubleToBitPreservingString(l->value);
+            if (options_->precise_float) {
+                if (l->suffix == tint::ast::FloatLiteralExpression::Suffix::kNone) {
+                    ss_ << tint::strconv::DoubleToBitPreservingString(l->value);
+                } else {
+                    ss_ << tint::strconv::FloatToBitPreservingString(static_cast<float>(l->value)) << l->suffix;
+                }
             } else {
-                ss_ << tint::strconv::FloatToBitPreservingString(static_cast<float>(l->value)) << l->suffix;
+                auto str = std::format("{:.6f}", l->value);
+                while (str.ends_with('0')) {
+                    str.pop_back();
+                }
+                ss_ << str << l->suffix;
             }
         },
         [&](const tint::ast::IntLiteralExpression* l) { ss_ << l->value << l->suffix; },  //

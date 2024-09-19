@@ -184,7 +184,7 @@ fn main(@location(0) x : f32) {
     auto result = Write(program, {});
     EXPECT_EQ(
         result.wgsl,
-        "@fragment fn main(@location(0)x:f32){@diagnostic(warning,derivative_uniformity)loop{_=dpdx(1.0);continuing{break if x>0.0;}}}"
+        "@fragment fn main(@location(0)x:f32){@diagnostic(warning,derivative_uniformity)loop{_=dpdx(1.);continuing{break if x>0.;}}}"
     );
 }
 
@@ -203,7 +203,7 @@ TEST(writer, dawn_files) {
             }
 
             auto program1 = Parse(content.c_str());
-            auto result = Write(program1, {});
+            auto result = Write(program1, {.precise_float = true});
             auto program2 = Parse(result.wgsl.c_str());
             auto r1 = tint::wgsl::writer::Generate(program1, {});
             auto r2 = tint::wgsl::writer::Generate(program2, {});

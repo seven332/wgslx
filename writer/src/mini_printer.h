@@ -25,12 +25,13 @@
 #include <string>
 
 #include "operator_group.h"
+#include "writer/writer.h"
 
 namespace wgslx::writer {
 
 class MiniPrinter {
  public:
-    explicit MiniPrinter(const tint::Program* program) : program_(program) {}
+    MiniPrinter(const tint::Program* program, const Options* options) : program_(program), options_(options) {}
 
     bool Generate();
 
@@ -38,6 +39,7 @@ class MiniPrinter {
 
  private:
     const tint::Program* program_;
+    const Options* options_;
     std::stringstream ss_;
 
     void EmitEnables();
