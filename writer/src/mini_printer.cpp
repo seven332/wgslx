@@ -165,7 +165,31 @@ void MiniPrinter::EmitTypeDecl(const tint::ast::TypeDecl* td) {
 }
 
 void MiniPrinter::EmitFunction(const tint::ast::Function* func) {
-    // TODO:
+    EmitAttributes(func->attributes);
+
+    ss_ << "fn " << func->name->symbol.Name() << "(";
+    bool first = true;
+    for (auto* v : func->params) {
+        if (!first) {
+            ss_ << ",";
+        }
+        first = false;
+
+        EmitAttributes(v->attributes);
+        ss_ << v->name->symbol.Name() << ":";
+        EmitExpression(v->type, OperatorPosition::Left, OperatorGroup::None);
+    }
+    ss_ << ")";
+
+    if (func->return_type || !func->return_type_attributes.IsEmpty()) {
+        ss_ << "->";
+        EmitAttributes(func->return_type_attributes);
+        EmitExpression(func->return_type, OperatorPosition::Left, OperatorGroup::None);
+    }
+
+    if (func->body) {
+        EmitStatement(func->body);
+    }
 }
 
 void MiniPrinter::EmitStatement(const tint::ast::Statement* stmt) {
@@ -311,7 +335,37 @@ void MiniPrinter::EmitReturn(const tint::ast::ReturnStatement* stmt) {
 }
 
 void MiniPrinter::EmitSwitch(const tint::ast::SwitchStatement* stmt) {
-    // TODO:
+    EmitAttributes(stmt->attributes);
+    ss_ << "switch(";
+    EmitExpression(stmt->condition, OperatorPosition::Left, OperatorGroup::None);
+    ss_ << ")";
+    EmitAttributes(stmt->body_attributes);
+    ss_ << "{";
+    for (auto* s : stmt->body) {
+        EmitCase(s);
+    }
+    ss_ << "}";
+}
+
+void MiniPrinter::EmitCase(const tint::ast::CaseStatement* stmt) {
+    if (stmt->selectors.Length() == 1 && stmt->ContainsDefault()) {
+        ss_ << "default";
+    } else {
+        ss_ << "case ";
+        bool first = true;
+        for (auto* sel : stmt->selectors) {
+            if (!first) {
+                ss_ << ",";
+            }
+            first = false;
+            if (sel->IsDefault()) {
+                ss_ << "default";
+            } else {
+                EmitExpression(sel->expr, OperatorPosition::Left, OperatorGroup::None);
+            }
+        }
+    }
+    EmitStatement(stmt->body);
 }
 
 void MiniPrinter::EmitVariable(const tint::ast::Variable* var) {
@@ -349,7 +403,9 @@ void MiniPrinter::EmitVariable(const tint::ast::Variable* var) {
 }
 
 void MiniPrinter::EmitConstAssert(const tint::ast::ConstAssert* ca) {
-    // TODO:
+    ss_ << "const_assert ";
+    EmitExpression(ca->condition, OperatorPosition::Left, OperatorGroup::None);
+    ss_ << ";";
 }
 
 void MiniPrinter::EmitStructType(const tint::ast::Struct* str) {

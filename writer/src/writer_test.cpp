@@ -158,4 +158,10 @@ TEST(writer, struct) {
     EXPECT_EQ(result.wgsl, "struct A{u:f32,v:f32,w:vec2<f32>,@size(16)x:f32}");
 }
 
+TEST(writer, function) {
+    auto program = Parse("fn f1(a: i32, b: i32) -> i32 { return (a + b) / 2; }");
+    auto result = Write(program, {});
+    EXPECT_EQ(result.wgsl, "fn f1(a:i32,b:i32)->i32{return (a+b)/2;}");
+}
+
 }  // namespace wgslx::writer

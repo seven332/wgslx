@@ -58,6 +58,7 @@ class MiniPrinter {
     void EmitWhile(const tint::ast::WhileStatement* stmt);
     void EmitReturn(const tint::ast::ReturnStatement* stmt);
     void EmitSwitch(const tint::ast::SwitchStatement* stmt);
+    void EmitCase(const tint::ast::CaseStatement* stmt);
     void EmitVariable(const tint::ast::Variable* var);
     void EmitConstAssert(const tint::ast::ConstAssert* ca);
     void EmitStructType(const tint::ast::Struct* str);
