@@ -1,11 +1,18 @@
 #include "minifier/minifier.h"
 
 #include <gmock/gmock.h>
+#include <src/tint/lang/wgsl/program/program.h>
+#include <src/tint/lang/wgsl/writer/writer.h>
 
 #include <string>
 #include <unordered_map>
 
 namespace wgslx::minifier {
+
+static std::string Write(const tint::Program& program) {
+    auto result = tint::wgsl::writer::Generate(program, {});
+    return result->wgsl;
+}
 
 TEST(minifier, Rename) {
     auto result = Minify(
@@ -22,7 +29,7 @@ fn average(a: f32, b: f32) -> f32 {
     );
     EXPECT_FALSE(result.failed);
     EXPECT_EQ(
-        result.wgsl,
+        Write(result.program),
         "fn a(b : f32, c : f32) -> f32 {\n  return ((b + c) / 2);\n}\n"
         "\n@vertex\nfn d() -> @builtin(position) vec4f {\n  return vec4f(a(0, 1));\n}\n"
     );
@@ -60,9 +67,9 @@ TEST(minifier, RenameSkipKeywords) {
         }
     );
     EXPECT_FALSE(result.failed);
-    EXPECT_NE(result.wgsl.find("let ar = 0;"), std::string::npos);
-    EXPECT_EQ(result.wgsl.find("let as = 0;"), std::string::npos);
-    EXPECT_NE(result.wgsl.find("let at = 0;"), std::string::npos);
+    EXPECT_NE(Write(result.program).find("let ar = 0;"), std::string::npos);
+    EXPECT_EQ(Write(result.program).find("let as = 0;"), std::string::npos);
+    EXPECT_NE(Write(result.program).find("let at = 0;"), std::string::npos);
 }
 
 TEST(minifier, RemoveUnreachable) {
@@ -77,7 +84,7 @@ TEST(minifier, RemoveUnreachable) {
         {}
     );
     EXPECT_FALSE(result.failed);
-    EXPECT_EQ(result.wgsl, "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4f(2);\n}\n");
+    EXPECT_EQ(Write(result.program), "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4f(2);\n}\n");
     EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "a")));
 }
 
@@ -95,7 +102,7 @@ fn average(a: f32, b: f32) -> f32 {
         {}
     );
     EXPECT_FALSE(result.failed);
-    EXPECT_EQ(result.wgsl, "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4f(1);\n}\n");
+    EXPECT_EQ(Write(result.program), "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4f(1);\n}\n");
     EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "a")));
 }
 

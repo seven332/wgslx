@@ -1,5 +1,7 @@
 #pragma once
 
+#include <src/tint/lang/wgsl/program/program.h>
+
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -13,7 +15,7 @@ struct Options {
 };
 
 struct Result {
-    std::string wgsl;
+    tint::Program program;
     std::unordered_map<std::string, std::string> remappings;
     std::string failure_message;
     bool failed = false;

@@ -59,14 +59,8 @@ Result Minify(std::string_view data, const Options& options) {
     }
     auto output = transform_manager.Run(input, in_data, out_data);
 
-    // Generate
-    auto result = tint::wgsl::writer::Generate(output, {});
-    if (result != tint::Success) {
-        return GenerateError(result.Failure().reason);
-    }
-
     return {
-        .wgsl = result->wgsl,
+        .program = std::move(output),
         .remappings = std::move(out_data.Get<RenameIdentifiers::Data>()->remappings),
     };
 }
