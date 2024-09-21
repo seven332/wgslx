@@ -27,3 +27,5 @@ add_subdirectory(dawn)
 add_subdirectory(dawn/third_party/googletest)
 
 add_subdirectory(range-v3)
+
+add_subdirectory(json)

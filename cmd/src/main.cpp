@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <string>
 
 #include "minifier/minifier.h"
@@ -84,11 +85,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // TODO: print json
-    std::cout << writer_res.wgsl << "\n";
-    for (const auto& [k, v] : minifier_res.remappings) {
-        std::cout << k << ": " << v << "\n";
-    }
+    nlohmann::json j;
+    j["wgsl"] = writer_res.wgsl;
+    j["remappings"] = minifier_res.remappings;
+    std::cout << j.dump();
 
     return 0;
 }
