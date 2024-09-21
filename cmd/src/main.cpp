@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
     nlohmann::json j;
     j["wgsl"] = writer_res.wgsl;
     j["remappings"] = minifier_res.remappings;
-    std::cout << j.dump();
+    std::cout << j.dump() << "\n";
 
     return 0;
 }
