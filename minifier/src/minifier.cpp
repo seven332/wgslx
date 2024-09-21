@@ -25,8 +25,8 @@ static Result GenerateError(const tint::diag::List& diagnostics) {
                    ranges::views::transform([](const tint::diag::Diagnostic& d) { return d.message.Plain(); }) |
                    ranges::views::join('\n') | ranges::to<std::string>();
     return {
-        .failed = true,
         .failure_message = std::move(message),
+        .failed = true,
     };
 }
 

@@ -74,8 +74,8 @@ static std::vector<const tint::ast::Function*> FindUselessFunctions(const tint::
 
 RemoveUselessFunctions::ApplyResult RemoveUselessFunctions::Apply(
     const tint::Program& program,
-    const tint::ast::transform::DataMap& inputs,
-    tint::ast::transform::DataMap& outputs
+    const tint::ast::transform::DataMap& /* inputs */,
+    tint::ast::transform::DataMap& /* outputs */
 ) const {
     tint::ProgramBuilder builder;
     tint::program::CloneContext ctx(&builder, &program, true);

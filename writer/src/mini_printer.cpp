@@ -200,15 +200,15 @@ void MiniPrinter::EmitStatement(const tint::ast::Statement* stmt) {
         stmt,
         [&](const tint::ast::AssignmentStatement* a) { EmitAssign(a); },
         [&](const tint::ast::BlockStatement* b) { EmitBlock(b); },
-        [&](const tint::ast::BreakStatement* b) { ss_ << "break;"; },
+        [&](const tint::ast::BreakStatement*) { ss_ << "break;"; },
         [&](const tint::ast::BreakIfStatement* b) { EmitBreakIf(b); },
         [&](const tint::ast::CallStatement* c) {
             EmitCall(c->expr);
             ss_ << ";";
         },
         [&](const tint::ast::CompoundAssignmentStatement* c) { EmitCompoundAssign(c); },
-        [&](const tint::ast::ContinueStatement* c) { ss_ << "continue;"; },
-        [&](const tint::ast::DiscardStatement* d) { ss_ << "discard;"; },
+        [&](const tint::ast::ContinueStatement*) { ss_ << "continue;"; },
+        [&](const tint::ast::DiscardStatement*) { ss_ << "discard;"; },
         [&](const tint::ast::IfStatement* i) { EmitIf(i); },
         [&](const tint::ast::IncrementDecrementStatement* l) { EmitIncrementDecrement(l); },
         [&](const tint::ast::LoopStatement* l) { EmitLoop(l); },

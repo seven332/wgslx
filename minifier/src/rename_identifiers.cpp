@@ -194,7 +194,7 @@ static constexpr const char* ReservedWords[] = {
 };
 
 template<class T, std::size_t N>
-static constexpr std::size_t ArraySize(T (&_)[N]) {
+static constexpr std::size_t ArraySize(T (& /* _ */)[N]) {
     return N;
 }
 
@@ -209,16 +209,16 @@ static constexpr bool Compare(const char* a, const char* b) {
 static constexpr std::array<const char*, KeywordSize> SortedKeywords = []() {
     std::array<const char*, KeywordSize> keywords;
     auto i = 0;
-    for (auto j = 0; j < ArraySize(KeywordSummary); ++i, ++j) {
+    for (auto j = 0; j < static_cast<int>(ArraySize(KeywordSummary)); ++i, ++j) {
         keywords[i] = KeywordSummary[j];
     }
-    for (auto j = 0; j < ArraySize(ReservedWords); ++i, ++j) {
+    for (auto j = 0; j < static_cast<int>(ArraySize(ReservedWords)); ++i, ++j) {
         keywords[i] = ReservedWords[j];
     }
-    for (auto j = 0; j < ArraySize(tint::core::kBuiltinTypeStrings); ++i, ++j) {
+    for (auto j = 0; j < static_cast<int>(ArraySize(tint::core::kBuiltinTypeStrings)); ++i, ++j) {
         keywords[i] = tint::core::kBuiltinTypeStrings[j].data();
     }
-    for (auto j = 0; j < ArraySize(tint::core::kBuiltinFnStrings); ++i, ++j) {
+    for (auto j = 0; j < static_cast<int>(ArraySize(tint::core::kBuiltinFnStrings)); ++i, ++j) {
         keywords[i] = tint::core::kBuiltinFnStrings[j];
     }
     std::sort(keywords.begin(), keywords.end(), Compare);
@@ -341,7 +341,7 @@ static tint::Hashset<const tint::ast::Identifier*, 16> CollectPreservedIdentifie
 
 RenameIdentifiers::ApplyResult RenameIdentifiers::Apply(
     const tint::Program& program,
-    const tint::ast::transform::DataMap& inputs,
+    const tint::ast::transform::DataMap& /* inputs */,
     tint::ast::transform::DataMap& outputs
 ) const {
     auto preserved_identifiers = CollectPreservedIdentifiers(program);
