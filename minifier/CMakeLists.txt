@@ -2,7 +2,7 @@ add_library(
     minifier
     src/minifier.cpp
     src/rename_identifiers.cpp
-    src/remove_useless_functions.cpp
+    src/remove_useless.cpp
     src/traverser.cpp
 )
 target_compile_options(

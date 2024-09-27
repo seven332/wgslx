@@ -1,4 +1,4 @@
-#include "remove_useless_functions.h"
+#include "remove_useless.h"
 
 #include <src/tint/lang/wgsl/ast/function.h>
 #include <src/tint/lang/wgsl/ast/identifier.h>
@@ -19,7 +19,7 @@
 
 #include "traverser.h"
 
-TINT_INSTANTIATE_TYPEINFO(wgslx::minifier::RemoveUselessFunctions);
+TINT_INSTANTIATE_TYPEINFO(wgslx::minifier::RemoveUseless);
 
 namespace wgslx::minifier {
 
@@ -72,7 +72,7 @@ static std::vector<const tint::ast::Function*> FindUselessFunctions(const tint::
            ranges::views::transform([](const auto& p) { return p.second.func; }) | ranges::to<std::vector>();
 }
 
-RemoveUselessFunctions::ApplyResult RemoveUselessFunctions::Apply(
+RemoveUseless::ApplyResult RemoveUseless::Apply(
     const tint::Program& program,
     const tint::ast::transform::DataMap& /* inputs */,
     tint::ast::transform::DataMap& /* outputs */

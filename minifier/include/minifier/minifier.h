@@ -11,7 +11,7 @@ namespace wgslx::minifier {
 struct Options {
     bool rename_identifiers = true;
     bool remove_unreachable_statements = true;
-    bool remove_useless_functions = true;
+    bool remove_useless = true;
 };
 
 struct Result {

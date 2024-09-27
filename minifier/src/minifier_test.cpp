@@ -63,7 +63,7 @@ TEST(minifier, RenameSkipKeywords) {
         {
             .rename_identifiers = true,
             .remove_unreachable_statements = false,
-            .remove_useless_functions = false,
+            .remove_useless = false,
         }
     );
     EXPECT_FALSE(result.failed);

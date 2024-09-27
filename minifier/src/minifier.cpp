@@ -11,7 +11,7 @@
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/transform.hpp>
 
-#include "remove_useless_functions.h"
+#include "remove_useless.h"
 #include "rename_identifiers.h"
 
 namespace wgslx::minifier {
@@ -51,8 +51,8 @@ Result Minify(std::string_view data, const Options& options) {
     if (options.remove_unreachable_statements) {
         transform_manager.Add<tint::ast::transform::RemoveUnreachableStatements>();
     }
-    if (options.remove_useless_functions) {
-        transform_manager.Add<RemoveUselessFunctions>();
+    if (options.remove_useless) {
+        transform_manager.Add<RemoveUseless>();
     }
     if (options.rename_identifiers) {
         transform_manager.Add<RenameIdentifiers>();

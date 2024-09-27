@@ -4,7 +4,7 @@
 
 namespace wgslx::minifier {
 
-class RemoveUselessFunctions final : public tint::Castable<RemoveUselessFunctions, tint::ast::transform::Transform> {
+class RemoveUseless final : public tint::Castable<RemoveUseless, tint::ast::transform::Transform> {
  public:
     ApplyResult Apply(
         const tint::Program& program,
