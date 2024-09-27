@@ -1,6 +1,5 @@
 #include "mini_printer.h"
 
-#include <__format/format_functions.h>
 #include <src/tint/lang/wgsl/ast/alias.h>
 #include <src/tint/lang/wgsl/ast/assignment_statement.h>
 #include <src/tint/lang/wgsl/ast/binary_expression.h>
@@ -65,6 +64,7 @@
 #include <src/tint/utils/text/string.h>
 
 #include <algorithm>
+#include <format>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/for_each.hpp>
 #include <vector>

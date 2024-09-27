@@ -7,7 +7,7 @@ add_library(
 )
 target_compile_options(
     minifier
-    PRIVATE -fno-exceptions -fno-rtti -Wall -Wextra -Werror
+    PRIVATE -fno-rtti -Wall -Wextra -Wno-missing-field-initializers -Werror
 )
 target_include_directories(minifier PUBLIC include PRIVATE src)
 target_link_libraries(minifier PUBLIC tint_api PRIVATE range-v3)

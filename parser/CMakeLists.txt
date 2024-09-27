@@ -1,7 +1,7 @@
 add_library(parser src/parser.cpp)
 target_compile_options(
     parser
-    PRIVATE -fno-exceptions -fno-rtti -Wall -Wextra -Werror
+    PRIVATE -fno-rtti -Wall -Wextra -Wno-missing-field-initializers -Werror
 )
 target_include_directories(parser PUBLIC include PRIVATE src)
 target_link_libraries(parser PUBLIC tint_api PRIVATE range-v3)
