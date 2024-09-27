@@ -106,4 +106,24 @@ fn average(a: f32, b: f32) -> f32 {
     EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "a")));
 }
 
+TEST(minifier, RemoveUselessConst) {
+    auto result = Minify(
+        R"(
+const i = 2;
+const j = 2;
+
+@vertex fn vs1() -> @builtin(position) vec4f {
+    return vec4f(1) / i;
+}
+)",
+        {}
+    );
+    EXPECT_FALSE(result.failed);
+    EXPECT_EQ(
+        Write(result.program),
+        "const a = 2;\n\n@vertex\nfn b() -> @builtin(position) vec4f {\n  return (vec4f(1) / a);\n}\n"
+    );
+    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "b")));
+}
+
 }  // namespace wgslx::minifier
