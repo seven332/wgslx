@@ -17,9 +17,6 @@
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/transform.hpp>
 #include <string>
-#include <unordered_map>
-
-#include "gmock/gmock.h"
 
 namespace wgslx::writer {
 
@@ -157,7 +154,7 @@ TEST(writer, attributes) {
 TEST(writer, struct) {
     auto program = Parse("struct A {u: f32, v: f32, w: vec2<f32>, @size(16) x: f32}");
     auto result = Write(program, {});
-    EXPECT_EQ(result.wgsl, "struct A{u:f32,v:f32,w:vec2<f32>,@size(16)x:f32}");
+    EXPECT_EQ(result.wgsl, "struct A{u:f32,v:f32,w:vec2f,@size(16)x:f32}");
 }
 
 TEST(writer, function) {
@@ -188,6 +185,19 @@ fn main(@location(0) x : f32) {
     );
 }
 
+TEST(writer, convert_type) {
+    auto program = Parse(
+        R"(
+@fragment
+fn main() -> @location(0) vec4f {
+  return vec4<f32>(1);
+}
+)"
+    );
+    auto result = Write(program, {});
+    EXPECT_EQ(result.wgsl, "@fragment fn main()->@location(0)vec4f{return vec4f(1);}");
+}
+
 TEST(writer, dawn_files) {
     auto dir = std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "third_party" / "dawn" /
                "test" / "tint";
@@ -203,7 +213,7 @@ TEST(writer, dawn_files) {
             }
 
             auto program1 = Parse(content.c_str());
-            auto result = Write(program1, {.precise_float = true});
+            auto result = Write(program1, {.precise_float = true, .use_type_alias = false});
             auto program2 = Parse(result.wgsl.c_str());
             auto r1 = tint::wgsl::writer::Generate(program1, {});
             auto r2 = tint::wgsl::writer::Generate(program2, {});

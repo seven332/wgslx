@@ -67,6 +67,9 @@
 #include <format>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/for_each.hpp>
+#include <sstream>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "operator_group.h"
@@ -74,26 +77,26 @@
 namespace wgslx::writer {
 
 bool MiniPrinter::Generate() {
-    EmitEnables();
-    EmitRequires();
-    EmitDiagnosticDirectives();
+    EmitEnables(ss_);
+    EmitRequires(ss_);
+    EmitDiagnosticDirectives(ss_);
     for (auto* decl : program_->AST().GlobalDeclarations()) {
         if (decl->IsAnyOf<tint::ast::DiagnosticDirective, tint::ast::Enable, tint::ast::Requires>()) {
             continue;
         }
         Switch(
             decl,
-            [&](const tint::ast::TypeDecl* td) { return EmitTypeDecl(td); },
-            [&](const tint::ast::Function* func) { return EmitFunction(func); },
-            [&](const tint::ast::Variable* var) { return EmitVariable(var); },
-            [&](const tint::ast::ConstAssert* ca) { return EmitConstAssert(ca); },  //
+            [&](const tint::ast::TypeDecl* td) { return EmitTypeDecl(ss_, td); },
+            [&](const tint::ast::Function* func) { return EmitFunction(ss_, func); },
+            [&](const tint::ast::Variable* var) { return EmitVariable(ss_, var); },
+            [&](const tint::ast::ConstAssert* ca) { return EmitConstAssert(ss_, ca); },  //
             TINT_ICE_ON_NO_MATCH
         );
     }
     return true;
 }
 
-void MiniPrinter::EmitEnables() {
+void MiniPrinter::EmitEnables(std::stringstream& out) {
     std::vector<tint::wgsl::Extension> extensions;
     for (const auto* enable : program_->AST().Enables()) {
         for (const auto* extension : enable->extensions) {
@@ -107,18 +110,18 @@ void MiniPrinter::EmitEnables() {
     extensions.erase(last, extensions.end());
 
     if (!extensions.empty()) {
-        ss_ << "enable ";
+        out << "enable ";
         for (auto iter = extensions.begin(); iter != extensions.end(); ++iter) {
             if (iter != extensions.begin()) {
-                ss_ << ",";
+                out << ",";
             }
-            ss_ << *iter;
+            out << *iter;
         }
-        ss_ << ";";
+        out << ";";
     }
 }
 
-void MiniPrinter::EmitRequires() {
+void MiniPrinter::EmitRequires(std::stringstream& out) {
     std::vector<tint::wgsl::LanguageFeature> features;
     for (const auto* require : program_->AST().Requires()) {
         for (auto feature : require->features) {
@@ -132,288 +135,288 @@ void MiniPrinter::EmitRequires() {
     features.erase(last, features.end());
 
     if (!features.empty()) {
-        ss_ << "requires ";
+        out << "requires ";
         for (auto iter = features.begin(); iter != features.end(); ++iter) {
             if (iter != features.begin()) {
-                ss_ << ",";
+                out << ",";
             }
-            ss_ << tint::wgsl::ToString(*iter);
+            out << tint::wgsl::ToString(*iter);
         }
-        ss_ << ";";
+        out << ";";
     }
 }
 
-void MiniPrinter::EmitDiagnosticDirectives() {
+void MiniPrinter::EmitDiagnosticDirectives(std::stringstream& out) {
     for (auto diagnostic : program_->AST().DiagnosticDirectives()) {
-        EmitDiagnosticControl(diagnostic->control);
-        ss_ << ";";
+        EmitDiagnosticControl(out, diagnostic->control);
+        out << ";";
     }
 }
 
-void MiniPrinter::EmitDiagnosticControl(const tint::ast::DiagnosticControl& diagnostic) {
-    ss_ << "diagnostic(" << diagnostic.severity << "," << diagnostic.rule_name->String() << ")";
+void MiniPrinter::EmitDiagnosticControl(std::stringstream& out, const tint::ast::DiagnosticControl& diagnostic) {
+    out << "diagnostic(" << diagnostic.severity << "," << diagnostic.rule_name->String() << ")";
 }
 
-void MiniPrinter::EmitTypeDecl(const tint::ast::TypeDecl* td) {
+void MiniPrinter::EmitTypeDecl(std::stringstream& out, const tint::ast::TypeDecl* td) {
     Switch(
         td,
         [&](const tint::ast::Alias* alias) {
-            ss_ << "alias " << alias->name->symbol.Name() << "=";
-            EmitExpression(alias->type, OperatorPosition::Left, OperatorGroup::None);
-            ss_ << ";";
+            out << "alias " << alias->name->symbol.Name() << "=";
+            EmitExpression(out, alias->type, OperatorPosition::Left, OperatorGroup::None);
+            out << ";";
         },
-        [&](const tint::ast::Struct* str) { EmitStructType(str); },
+        [&](const tint::ast::Struct* str) { EmitStructType(out, str); },
         TINT_ICE_ON_NO_MATCH
     );
 }
 
-void MiniPrinter::EmitFunction(const tint::ast::Function* func) {
-    EmitAttributes(func->attributes);
+void MiniPrinter::EmitFunction(std::stringstream& out, const tint::ast::Function* func) {
+    EmitAttributes(out, func->attributes);
 
-    ss_ << "fn " << func->name->symbol.Name() << "(";
+    out << "fn " << func->name->symbol.Name() << "(";
     bool first = true;
     for (auto* v : func->params) {
         if (!first) {
-            ss_ << ",";
+            out << ",";
         }
         first = false;
 
-        EmitAttributes(v->attributes);
-        ss_ << v->name->symbol.Name() << ":";
-        EmitExpression(v->type, OperatorPosition::Left, OperatorGroup::None);
+        EmitAttributes(out, v->attributes);
+        out << v->name->symbol.Name() << ":";
+        EmitExpression(out, v->type, OperatorPosition::Left, OperatorGroup::None);
     }
-    ss_ << ")";
+    out << ")";
 
     if (func->return_type || !func->return_type_attributes.IsEmpty()) {
-        ss_ << "->";
-        EmitAttributes(func->return_type_attributes);
-        EmitExpression(func->return_type, OperatorPosition::Left, OperatorGroup::None);
+        out << "->";
+        EmitAttributes(out, func->return_type_attributes);
+        EmitExpression(out, func->return_type, OperatorPosition::Left, OperatorGroup::None);
     }
 
     if (func->body) {
-        EmitStatement(func->body);
+        EmitStatement(out, func->body);
     }
 }
 
-void MiniPrinter::EmitStatement(const tint::ast::Statement* stmt) {
+void MiniPrinter::EmitStatement(std::stringstream& out, const tint::ast::Statement* stmt) {
     Switch(
         stmt,
-        [&](const tint::ast::AssignmentStatement* a) { EmitAssign(a); },
-        [&](const tint::ast::BlockStatement* b) { EmitBlock(b); },
-        [&](const tint::ast::BreakStatement*) { ss_ << "break;"; },
-        [&](const tint::ast::BreakIfStatement* b) { EmitBreakIf(b); },
+        [&](const tint::ast::AssignmentStatement* a) { EmitAssign(out, a); },
+        [&](const tint::ast::BlockStatement* b) { EmitBlock(out, b); },
+        [&](const tint::ast::BreakStatement*) { out << "break;"; },
+        [&](const tint::ast::BreakIfStatement* b) { EmitBreakIf(out, b); },
         [&](const tint::ast::CallStatement* c) {
-            EmitCall(c->expr);
-            ss_ << ";";
+            EmitCall(out, c->expr);
+            out << ";";
         },
-        [&](const tint::ast::CompoundAssignmentStatement* c) { EmitCompoundAssign(c); },
-        [&](const tint::ast::ContinueStatement*) { ss_ << "continue;"; },
-        [&](const tint::ast::DiscardStatement*) { ss_ << "discard;"; },
-        [&](const tint::ast::IfStatement* i) { EmitIf(i); },
-        [&](const tint::ast::IncrementDecrementStatement* l) { EmitIncrementDecrement(l); },
-        [&](const tint::ast::LoopStatement* l) { EmitLoop(l); },
-        [&](const tint::ast::ForLoopStatement* l) { EmitForLoop(l); },
-        [&](const tint::ast::WhileStatement* l) { EmitWhile(l); },
-        [&](const tint::ast::ReturnStatement* r) { EmitReturn(r); },
-        [&](const tint::ast::ConstAssert* c) { EmitConstAssert(c); },
-        [&](const tint::ast::SwitchStatement* s) { EmitSwitch(s); },
-        [&](const tint::ast::VariableDeclStatement* v) { EmitVariable(v->variable); },
+        [&](const tint::ast::CompoundAssignmentStatement* c) { EmitCompoundAssign(out, c); },
+        [&](const tint::ast::ContinueStatement*) { out << "continue;"; },
+        [&](const tint::ast::DiscardStatement*) { out << "discard;"; },
+        [&](const tint::ast::IfStatement* i) { EmitIf(out, i); },
+        [&](const tint::ast::IncrementDecrementStatement* l) { EmitIncrementDecrement(out, l); },
+        [&](const tint::ast::LoopStatement* l) { EmitLoop(out, l); },
+        [&](const tint::ast::ForLoopStatement* l) { EmitForLoop(out, l); },
+        [&](const tint::ast::WhileStatement* l) { EmitWhile(out, l); },
+        [&](const tint::ast::ReturnStatement* r) { EmitReturn(out, r); },
+        [&](const tint::ast::ConstAssert* c) { EmitConstAssert(out, c); },
+        [&](const tint::ast::SwitchStatement* s) { EmitSwitch(out, s); },
+        [&](const tint::ast::VariableDeclStatement* v) { EmitVariable(out, v->variable); },
         TINT_ICE_ON_NO_MATCH
     );
 }
 
-void MiniPrinter::EmitAssign(const tint::ast::AssignmentStatement* stmt) {
-    EmitExpression(stmt->lhs, OperatorPosition::Left, OperatorGroup::None);
-    ss_ << "=";
-    EmitExpression(stmt->rhs, OperatorPosition::Left, OperatorGroup::None);
-    ss_ << ";";
+void MiniPrinter::EmitAssign(std::stringstream& out, const tint::ast::AssignmentStatement* stmt) {
+    EmitExpression(out, stmt->lhs, OperatorPosition::Left, OperatorGroup::None);
+    out << "=";
+    EmitExpression(out, stmt->rhs, OperatorPosition::Left, OperatorGroup::None);
+    out << ";";
 }
 
-void MiniPrinter::EmitBlock(const tint::ast::BlockStatement* stmt) {
-    EmitAttributes(stmt->attributes);
-    ss_ << "{";
+void MiniPrinter::EmitBlock(std::stringstream& out, const tint::ast::BlockStatement* stmt) {
+    EmitAttributes(out, stmt->attributes);
+    out << "{";
     for (auto* s : stmt->statements) {
-        EmitStatement(s);
+        EmitStatement(out, s);
     }
-    ss_ << "}";
+    out << "}";
 }
 
-void MiniPrinter::EmitBreakIf(const tint::ast::BreakIfStatement* b) {
-    ss_ << "break if ";
-    EmitExpression(b->condition, OperatorPosition::Left, OperatorGroup::None);
-    ss_ << ";";
+void MiniPrinter::EmitBreakIf(std::stringstream& out, const tint::ast::BreakIfStatement* b) {
+    out << "break if ";
+    EmitExpression(out, b->condition, OperatorPosition::Left, OperatorGroup::None);
+    out << ";";
 }
 
-void MiniPrinter::EmitCompoundAssign(const tint::ast::CompoundAssignmentStatement* stmt) {
-    EmitExpression(stmt->lhs, OperatorPosition::Left, OperatorGroup::None);
-    EmitBinaryOp(stmt->op);
-    ss_ << "=";
-    EmitExpression(stmt->rhs, OperatorPosition::Left, OperatorGroup::None);
-    ss_ << ";";
+void MiniPrinter::EmitCompoundAssign(std::stringstream& out, const tint::ast::CompoundAssignmentStatement* stmt) {
+    EmitExpression(out, stmt->lhs, OperatorPosition::Left, OperatorGroup::None);
+    EmitBinaryOp(out, stmt->op);
+    out << "=";
+    EmitExpression(out, stmt->rhs, OperatorPosition::Left, OperatorGroup::None);
+    out << ";";
 }
 
-void MiniPrinter::EmitIf(const tint::ast::IfStatement* stmt) {
-    EmitAttributes(stmt->attributes);
-    ss_ << "if(";
-    EmitExpression(stmt->condition, OperatorPosition::Left, OperatorGroup::None);
-    ss_ << ")";
-    EmitStatement(stmt->body);
+void MiniPrinter::EmitIf(std::stringstream& out, const tint::ast::IfStatement* stmt) {
+    EmitAttributes(out, stmt->attributes);
+    out << "if(";
+    EmitExpression(out, stmt->condition, OperatorPosition::Left, OperatorGroup::None);
+    out << ")";
+    EmitStatement(out, stmt->body);
     const auto* e = stmt->else_statement;
     while (e) {
         if (auto* elseif = e->As<tint::ast::IfStatement>()) {
-            ss_ << "else if(";
-            EmitExpression(elseif->condition, OperatorPosition::Left, OperatorGroup::None);
-            ss_ << ")";
-            EmitStatement(elseif->body);
+            out << "else if(";
+            EmitExpression(out, elseif->condition, OperatorPosition::Left, OperatorGroup::None);
+            out << ")";
+            EmitStatement(out, elseif->body);
             e = elseif->else_statement;
         } else {
             auto* body = e->As<tint::ast::BlockStatement>();
-            ss_ << "else";
-            EmitStatement(body);
+            out << "else";
+            EmitStatement(out, body);
             break;
         }
     }
 }
 
-void MiniPrinter::EmitIncrementDecrement(const tint::ast::IncrementDecrementStatement* stmt) {
-    EmitExpression(stmt->lhs, OperatorPosition::Left, OperatorGroup::None);
-    ss_ << (stmt->increment ? "++" : "--") << ";";
+void MiniPrinter::EmitIncrementDecrement(std::stringstream& out, const tint::ast::IncrementDecrementStatement* stmt) {
+    EmitExpression(out, stmt->lhs, OperatorPosition::Left, OperatorGroup::None);
+    out << (stmt->increment ? "++" : "--") << ";";
 }
 
-void MiniPrinter::EmitLoop(const tint::ast::LoopStatement* stmt) {
-    EmitAttributes(stmt->attributes);
-    ss_ << "loop";
-    EmitAttributes(stmt->body->attributes);
-    ss_ << "{";
+void MiniPrinter::EmitLoop(std::stringstream& out, const tint::ast::LoopStatement* stmt) {
+    EmitAttributes(out, stmt->attributes);
+    out << "loop";
+    EmitAttributes(out, stmt->body->attributes);
+    out << "{";
     for (auto* s : stmt->body->statements) {
-        EmitStatement(s);
+        EmitStatement(out, s);
     }
     if (stmt->continuing && !stmt->continuing->Empty()) {
-        ss_ << "continuing";
-        EmitAttributes(stmt->continuing->attributes);
-        ss_ << "{";
+        out << "continuing";
+        EmitAttributes(out, stmt->continuing->attributes);
+        out << "{";
         for (auto* s : stmt->continuing->statements) {
-            EmitStatement(s);
+            EmitStatement(out, s);
         }
-        ss_ << "}";
+        out << "}";
     }
-    ss_ << "}";
+    out << "}";
 }
 
-void MiniPrinter::EmitForLoop(const tint::ast::ForLoopStatement* stmt) {
-    EmitAttributes(stmt->attributes);
-    ss_ << "for(";
+void MiniPrinter::EmitForLoop(std::stringstream& out, const tint::ast::ForLoopStatement* stmt) {
+    EmitAttributes(out, stmt->attributes);
+    out << "for(";
     if (stmt->initializer) {
-        EmitStatement(stmt->initializer);
+        EmitStatement(out, stmt->initializer);
     } else {
-        ss_ << ";";
+        out << ";";
     }
     if (auto* cond = stmt->condition) {
-        EmitExpression(cond, OperatorPosition::Left, OperatorGroup::None);
+        EmitExpression(out, cond, OperatorPosition::Left, OperatorGroup::None);
     }
-    ss_ << ";";
+    out << ";";
     if (stmt->continuing) {
-        EmitStatement(stmt->continuing);
-        ss_.seekp(-1, std::ios_base::end);
+        EmitStatement(out, stmt->continuing);
+        out.seekp(-1, std::ios_base::end);
     }
-    ss_ << ")";
-    EmitStatement(stmt->body);
+    out << ")";
+    EmitStatement(out, stmt->body);
 }
 
-void MiniPrinter::EmitWhile(const tint::ast::WhileStatement* stmt) {
-    EmitAttributes(stmt->attributes);
-    ss_ << "while(";
-    EmitExpression(stmt->condition, OperatorPosition::Left, OperatorGroup::None);
-    ss_ << ")";
-    EmitStatement(stmt->body);
+void MiniPrinter::EmitWhile(std::stringstream& out, const tint::ast::WhileStatement* stmt) {
+    EmitAttributes(out, stmt->attributes);
+    out << "while(";
+    EmitExpression(out, stmt->condition, OperatorPosition::Left, OperatorGroup::None);
+    out << ")";
+    EmitStatement(out, stmt->body);
 }
 
-void MiniPrinter::EmitReturn(const tint::ast::ReturnStatement* stmt) {
-    ss_ << "return";
+void MiniPrinter::EmitReturn(std::stringstream& out, const tint::ast::ReturnStatement* stmt) {
+    out << "return";
     if (stmt->value) {
-        ss_ << " ";
-        EmitExpression(stmt->value, OperatorPosition::Left, OperatorGroup::None);
+        out << " ";
+        EmitExpression(out, stmt->value, OperatorPosition::Left, OperatorGroup::None);
     }
-    ss_ << ";";
+    out << ";";
 }
 
-void MiniPrinter::EmitSwitch(const tint::ast::SwitchStatement* stmt) {
-    EmitAttributes(stmt->attributes);
-    ss_ << "switch(";
-    EmitExpression(stmt->condition, OperatorPosition::Left, OperatorGroup::None);
-    ss_ << ")";
-    EmitAttributes(stmt->body_attributes);
-    ss_ << "{";
+void MiniPrinter::EmitSwitch(std::stringstream& out, const tint::ast::SwitchStatement* stmt) {
+    EmitAttributes(out, stmt->attributes);
+    out << "switch(";
+    EmitExpression(out, stmt->condition, OperatorPosition::Left, OperatorGroup::None);
+    out << ")";
+    EmitAttributes(out, stmt->body_attributes);
+    out << "{";
     for (auto* s : stmt->body) {
-        EmitCase(s);
+        EmitCase(out, s);
     }
-    ss_ << "}";
+    out << "}";
 }
 
-void MiniPrinter::EmitCase(const tint::ast::CaseStatement* stmt) {
+void MiniPrinter::EmitCase(std::stringstream& out, const tint::ast::CaseStatement* stmt) {
     if (stmt->selectors.Length() == 1 && stmt->ContainsDefault()) {
-        ss_ << "default";
+        out << "default";
     } else {
-        ss_ << "case ";
+        out << "case ";
         bool first = true;
         for (auto* sel : stmt->selectors) {
             if (!first) {
-                ss_ << ",";
+                out << ",";
             }
             first = false;
             if (sel->IsDefault()) {
-                ss_ << "default";
+                out << "default";
             } else {
-                EmitExpression(sel->expr, OperatorPosition::Left, OperatorGroup::None);
+                EmitExpression(out, sel->expr, OperatorPosition::Left, OperatorGroup::None);
             }
         }
     }
-    EmitStatement(stmt->body);
+    EmitStatement(out, stmt->body);
 }
 
-void MiniPrinter::EmitVariable(const tint::ast::Variable* var) {
-    EmitAttributes(var->attributes);
+void MiniPrinter::EmitVariable(std::stringstream& out, const tint::ast::Variable* var) {
+    EmitAttributes(out, var->attributes);
 
     Switch(
         var,
         [&](const tint::ast::Var* var) {
-            ss_ << "var";
+            out << "var";
             if (var->declared_address_space || var->declared_access) {
-                ss_ << "<";
-                EmitExpression(var->declared_address_space, OperatorPosition::Left, OperatorGroup::None);
+                out << "<";
+                EmitExpression(out, var->declared_address_space, OperatorPosition::Left, OperatorGroup::None);
                 if (var->declared_access) {
-                    ss_ << ",";
-                    EmitExpression(var->declared_access, OperatorPosition::Left, OperatorGroup::None);
+                    out << ",";
+                    EmitExpression(out, var->declared_access, OperatorPosition::Left, OperatorGroup::None);
                 }
-                ss_ << ">";
+                out << ">";
             }
         },
-        [&](const tint::ast::Let*) { ss_ << "let"; },
-        [&](const tint::ast::Override*) { ss_ << "override"; },
-        [&](const tint::ast::Const*) { ss_ << "const"; },  //
+        [&](const tint::ast::Let*) { out << "let"; },
+        [&](const tint::ast::Override*) { out << "override"; },
+        [&](const tint::ast::Const*) { out << "const"; },  //
         TINT_ICE_ON_NO_MATCH
     );
-    ss_ << " " << var->name->symbol.Name();
+    out << " " << var->name->symbol.Name();
     if (auto ty = var->type) {
-        ss_ << ":";
-        EmitExpression(ty, OperatorPosition::Left, OperatorGroup::None);
+        out << ":";
+        EmitExpression(out, ty, OperatorPosition::Left, OperatorGroup::None);
     }
     if (var->initializer != nullptr) {
-        ss_ << "=";
-        EmitExpression(var->initializer, OperatorPosition::Left, OperatorGroup::None);
+        out << "=";
+        EmitExpression(out, var->initializer, OperatorPosition::Left, OperatorGroup::None);
     }
-    ss_ << ";";
+    out << ";";
 }
 
-void MiniPrinter::EmitConstAssert(const tint::ast::ConstAssert* ca) {
-    ss_ << "const_assert ";
-    EmitExpression(ca->condition, OperatorPosition::Left, OperatorGroup::None);
-    ss_ << ";";
+void MiniPrinter::EmitConstAssert(std::stringstream& out, const tint::ast::ConstAssert* ca) {
+    out << "const_assert ";
+    EmitExpression(out, ca->condition, OperatorPosition::Left, OperatorGroup::None);
+    out << ";";
 }
 
-void MiniPrinter::EmitStructType(const tint::ast::Struct* str) {
-    EmitAttributes(str->attributes);
-    ss_ << "struct " << str->name->symbol.Name() << "{";
+void MiniPrinter::EmitStructType(std::stringstream& out, const tint::ast::Struct* str) {
+    EmitAttributes(out, str->attributes);
+    out << "struct " << str->name->symbol.Name() << "{";
 
     tint::Hashset<std::string, 8> member_names;
     for (auto* mem : str->members) {
@@ -430,10 +433,10 @@ void MiniPrinter::EmitStructType(const tint::ast::Struct* str) {
     };
 
     auto add_padding = [&](uint32_t size) {
-        ss_ << "@size(" << size << ")";
+        out << "@size(" << size << ")";
         // Note: u32 is the smallest primitive we currently support. When WGSL
         // supports smaller types, this will need to be updated.
-        ss_ << new_padding_name() << ":u32,";
+        out << new_padding_name() << ":u32,";
     };
 
     uint32_t offset = 0;
@@ -461,328 +464,386 @@ void MiniPrinter::EmitStructType(const tint::ast::Struct* str) {
                 attributes_sanitized.Push(attr);
             }
         }
-        EmitAttributes(attributes_sanitized);
+        EmitAttributes(out, attributes_sanitized);
 
-        ss_ << mem->name->symbol.Name() << ":";
-        EmitExpression(mem->type, OperatorPosition::Left, OperatorGroup::None);
+        out << mem->name->symbol.Name() << ":";
+        EmitExpression(out, mem->type, OperatorPosition::Left, OperatorGroup::None);
         if (mem != str->members.Back()) {
-            ss_ << ",";
+            out << ",";
         }
     }
-    ss_ << "}";
+    out << "}";
 }
 
-void MiniPrinter::EmitAttributes(tint::VectorRef<const tint::ast::Attribute*> attrs) {
+void MiniPrinter::EmitAttributes(std::stringstream& out, const tint::VectorRef<const tint::ast::Attribute*>& attrs) {
     for (auto* attr : attrs) {
-        ss_ << "@";
+        out << "@";
         Switch(
             attr,
             [&](const tint::ast::WorkgroupAttribute* workgroup) {
                 auto values = workgroup->Values();
-                ss_ << "workgroup_size(";
+                out << "workgroup_size(";
                 for (size_t i = 0; i < 3; i++) {
                     if (values[i]) {
                         if (i > 0) {
-                            ss_ << ",";
+                            out << ",";
                         }
-                        EmitExpression(values[i], OperatorPosition::Left, OperatorGroup::None);
+                        EmitExpression(out, values[i], OperatorPosition::Left, OperatorGroup::None);
                     }
                 }
-                ss_ << ")";
+                out << ")";
             },
             [&](const tint::ast::StageAttribute* stage) {
-                ss_ << stage->stage;
-                ss_ << " ";
+                out << stage->stage;
+                out << " ";
             },
             [&](const tint::ast::BindingAttribute* binding) {
-                ss_ << "binding(";
-                EmitExpression(binding->expr, OperatorPosition::Left, OperatorGroup::None);
-                ss_ << ")";
+                out << "binding(";
+                EmitExpression(out, binding->expr, OperatorPosition::Left, OperatorGroup::None);
+                out << ")";
             },
             [&](const tint::ast::GroupAttribute* group) {
-                ss_ << "group(";
-                EmitExpression(group->expr, OperatorPosition::Left, OperatorGroup::None);
-                ss_ << ")";
+                out << "group(";
+                EmitExpression(out, group->expr, OperatorPosition::Left, OperatorGroup::None);
+                out << ")";
             },
             [&](const tint::ast::LocationAttribute* location) {
-                ss_ << "location(";
-                EmitExpression(location->expr, OperatorPosition::Left, OperatorGroup::None);
-                ss_ << ")";
+                out << "location(";
+                EmitExpression(out, location->expr, OperatorPosition::Left, OperatorGroup::None);
+                out << ")";
             },
             [&](const tint::ast::ColorAttribute* color) {
-                ss_ << "color(";
-                EmitExpression(color->expr, OperatorPosition::Left, OperatorGroup::None);
-                ss_ << ")";
+                out << "color(";
+                EmitExpression(out, color->expr, OperatorPosition::Left, OperatorGroup::None);
+                out << ")";
             },
             [&](const tint::ast::BlendSrcAttribute* blend_src) {
-                ss_ << "blend_src(";
-                EmitExpression(blend_src->expr, OperatorPosition::Left, OperatorGroup::None);
-                ss_ << ")";
+                out << "blend_src(";
+                EmitExpression(out, blend_src->expr, OperatorPosition::Left, OperatorGroup::None);
+                out << ")";
             },
             [&](const tint::ast::BuiltinAttribute* builtin) {
-                ss_ << "builtin(";
-                ss_ << tint::core::ToString(builtin->builtin);
-                ss_ << ")";
+                out << "builtin(";
+                out << tint::core::ToString(builtin->builtin);
+                out << ")";
             },
-            [&](const tint::ast::DiagnosticAttribute* diagnostic) { EmitDiagnosticControl(diagnostic->control); },
+            [&](const tint::ast::DiagnosticAttribute* diagnostic) { EmitDiagnosticControl(out, diagnostic->control); },
             [&](const tint::ast::InterpolateAttribute* interpolate) {
-                ss_ << "interpolate(";
-                ss_ << tint::core::ToString(interpolate->interpolation.type);
+                out << "interpolate(";
+                out << tint::core::ToString(interpolate->interpolation.type);
                 if (interpolate->interpolation.sampling != tint::core::InterpolationSampling::kUndefined) {
-                    ss_ << ",";
-                    ss_ << tint::core::ToString(interpolate->interpolation.sampling);
+                    out << ",";
+                    out << tint::core::ToString(interpolate->interpolation.sampling);
                 }
-                ss_ << ")";
+                out << ")";
             },
-            [&](const tint::ast::InvariantAttribute*) { ss_ << "invariant "; },
+            [&](const tint::ast::InvariantAttribute*) { out << "invariant "; },
             [&](const tint::ast::IdAttribute* override_deco) {
-                ss_ << "id(";
-                EmitExpression(override_deco->expr, OperatorPosition::Left, OperatorGroup::None);
-                ss_ << ")";
+                out << "id(";
+                EmitExpression(out, override_deco->expr, OperatorPosition::Left, OperatorGroup::None);
+                out << ")";
             },
-            [&](const tint::ast::MustUseAttribute*) { ss_ << "must_use "; },
+            [&](const tint::ast::MustUseAttribute*) { out << "must_use "; },
             [&](const tint::ast::StructMemberOffsetAttribute* offset) {
-                ss_ << "offset(";
-                EmitExpression(offset->expr, OperatorPosition::Left, OperatorGroup::None);
-                ss_ << ")";
+                out << "offset(";
+                EmitExpression(out, offset->expr, OperatorPosition::Left, OperatorGroup::None);
+                out << ")";
             },
             [&](const tint::ast::StructMemberSizeAttribute* size) {
-                ss_ << "size(";
-                EmitExpression(size->expr, OperatorPosition::Left, OperatorGroup::None);
-                ss_ << ")";
+                out << "size(";
+                EmitExpression(out, size->expr, OperatorPosition::Left, OperatorGroup::None);
+                out << ")";
             },
             [&](const tint::ast::StructMemberAlignAttribute* align) {
-                ss_ << "align(";
-                EmitExpression(align->expr, OperatorPosition::Left, OperatorGroup::None);
-                ss_ << ")";
+                out << "align(";
+                EmitExpression(out, align->expr, OperatorPosition::Left, OperatorGroup::None);
+                out << ")";
             },
             [&](const tint::ast::StrideAttribute* stride) {
-                ss_ << "stride(";
-                ss_ << stride->stride;
-                ss_ << ")";
+                out << "stride(";
+                out << stride->stride;
+                out << ")";
             },
             [&](const tint::ast::InternalAttribute* internal) {
-                ss_ << "internal(";
-                ss_ << internal->InternalName();
-                ss_ << ")";
+                out << "internal(";
+                out << internal->InternalName();
+                out << ")";
             },
             [&](const tint::ast::InputAttachmentIndexAttribute* index) {
-                ss_ << "input_attachment_index(";
-                EmitExpression(index->expr, OperatorPosition::Left, OperatorGroup::None);
-                ss_ << ")";
+                out << "input_attachment_index(";
+                EmitExpression(out, index->expr, OperatorPosition::Left, OperatorGroup::None);
+                out << ")";
             },
             TINT_ICE_ON_NO_MATCH
         );
     }
 }
 
-void MiniPrinter::EmitExpression(const tint::ast::Expression* expr, OperatorPosition position, OperatorGroup parent) {
+void MiniPrinter::EmitExpression(
+    std::stringstream& out,
+    const tint::ast::Expression* expr,
+    OperatorPosition position,
+    OperatorGroup parent
+) {
     Switch(
         expr,
-        [&](const tint::ast::IndexAccessorExpression* a) { EmitIndexAccessor(a); },
-        [&](const tint::ast::BinaryExpression* b) { EmitBinary(b, position, parent); },
-        [&](const tint::ast::CallExpression* c) { EmitCall(c); },
-        [&](const tint::ast::IdentifierExpression* i) { EmitIdentifier(i); },
-        [&](const tint::ast::LiteralExpression* l) { EmitLiteral(l); },
-        [&](const tint::ast::MemberAccessorExpression* m) { EmitMemberAccessor(m); },
-        [&](const tint::ast::PhonyExpression*) { ss_ << "_"; },
-        [&](const tint::ast::UnaryOpExpression* u) { EmitUnaryOp(u, position, parent); },
+        [&](const tint::ast::IndexAccessorExpression* a) { EmitIndexAccessor(out, a); },
+        [&](const tint::ast::BinaryExpression* b) { EmitBinary(out, b, position, parent); },
+        [&](const tint::ast::CallExpression* c) { EmitCall(out, c); },
+        [&](const tint::ast::IdentifierExpression* i) { EmitIdentifier(out, i); },
+        [&](const tint::ast::LiteralExpression* l) { EmitLiteral(out, l); },
+        [&](const tint::ast::MemberAccessorExpression* m) { EmitMemberAccessor(out, m); },
+        [&](const tint::ast::PhonyExpression*) { out << "_"; },
+        [&](const tint::ast::UnaryOpExpression* u) { EmitUnaryOp(out, u, position, parent); },
         TINT_ICE_ON_NO_MATCH
     );
 }
 
-void MiniPrinter::EmitIndexAccessor(const tint::ast::IndexAccessorExpression* expr) {
+void MiniPrinter::EmitIndexAccessor(std::stringstream& out, const tint::ast::IndexAccessorExpression* expr) {
     bool paren_lhs =
         !expr->object
              ->IsAnyOf<tint::ast::AccessorExpression, tint::ast::CallExpression, tint::ast::IdentifierExpression>();
     if (paren_lhs) {
-        ss_ << "(";
+        out << "(";
     }
-    EmitExpression(expr->object, OperatorPosition::Left, OperatorGroup::None);
+    EmitExpression(out, expr->object, OperatorPosition::Left, OperatorGroup::None);
     if (paren_lhs) {
-        ss_ << ")";
+        out << ")";
     }
-    ss_ << "[";
-    EmitExpression(expr->index, OperatorPosition::Left, OperatorGroup::None);
-    ss_ << "]";
+    out << "[";
+    EmitExpression(out, expr->index, OperatorPosition::Left, OperatorGroup::None);
+    out << "]";
 }
 
-void MiniPrinter::EmitMemberAccessor(const tint::ast::MemberAccessorExpression* expr) {
+void MiniPrinter::EmitMemberAccessor(std::stringstream& out, const tint::ast::MemberAccessorExpression* expr) {
     bool paren_lhs =
         !expr->object
              ->IsAnyOf<tint::ast::AccessorExpression, tint::ast::CallExpression, tint::ast::IdentifierExpression>();
     if (paren_lhs) {
-        ss_ << "(";
+        out << "(";
     }
-    EmitExpression(expr->object, OperatorPosition::Left, OperatorGroup::None);
+    EmitExpression(out, expr->object, OperatorPosition::Left, OperatorGroup::None);
     if (paren_lhs) {
-        ss_ << ")";
+        out << ")";
     }
-    ss_ << "." << expr->member->symbol.Name();
+    out << "." << expr->member->symbol.Name();
 }
 
-void MiniPrinter::EmitBinary(const tint::ast::BinaryExpression* expr, OperatorPosition position, OperatorGroup parent) {
+void MiniPrinter::EmitBinary(
+    std::stringstream& out,
+    const tint::ast::BinaryExpression* expr,
+    OperatorPosition position,
+    OperatorGroup parent
+) {
     auto group = toOperatorGroup(expr->op);
     auto paren = isParenthesisRequired(group, position, parent);
     if (paren) {
-        ss_ << "(";
+        out << "(";
     }
-    EmitExpression(expr->lhs, OperatorPosition::Left, group);
-    EmitBinaryOp(expr->op);
-    EmitExpression(expr->rhs, OperatorPosition::Right, group);
+    EmitExpression(out, expr->lhs, OperatorPosition::Left, group);
+    EmitBinaryOp(out, expr->op);
+    EmitExpression(out, expr->rhs, OperatorPosition::Right, group);
     if (paren) {
-        ss_ << ")";
+        out << ")";
     }
 }
 
-void MiniPrinter::EmitBinaryOp(const tint::core::BinaryOp op) {
+void MiniPrinter::EmitBinaryOp(std::stringstream& out, const tint::core::BinaryOp op) {
     switch (op) {
     case tint::core::BinaryOp::kAnd:
-        ss_ << "&";
+        out << "&";
         return;
     case tint::core::BinaryOp::kOr:
-        ss_ << "|";
+        out << "|";
         return;
     case tint::core::BinaryOp::kXor:
-        ss_ << "^";
+        out << "^";
         return;
     case tint::core::BinaryOp::kLogicalAnd:
-        ss_ << "&&";
+        out << "&&";
         return;
     case tint::core::BinaryOp::kLogicalOr:
-        ss_ << "||";
+        out << "||";
         return;
     case tint::core::BinaryOp::kEqual:
-        ss_ << "==";
+        out << "==";
         return;
     case tint::core::BinaryOp::kNotEqual:
-        ss_ << "!=";
+        out << "!=";
         return;
     case tint::core::BinaryOp::kLessThan:
-        ss_ << "<";
+        out << "<";
         return;
     case tint::core::BinaryOp::kGreaterThan:
-        ss_ << ">";
+        out << ">";
         return;
     case tint::core::BinaryOp::kLessThanEqual:
-        ss_ << "<=";
+        out << "<=";
         return;
     case tint::core::BinaryOp::kGreaterThanEqual:
-        ss_ << ">=";
+        out << ">=";
         return;
     case tint::core::BinaryOp::kShiftLeft:
-        ss_ << "<<";
+        out << "<<";
         return;
     case tint::core::BinaryOp::kShiftRight:
-        ss_ << ">>";
+        out << ">>";
         return;
     case tint::core::BinaryOp::kAdd:
-        ss_ << "+";
+        out << "+";
         return;
     case tint::core::BinaryOp::kSubtract:
-        ss_ << "-";
+        out << "-";
         return;
     case tint::core::BinaryOp::kMultiply:
-        ss_ << "*";
+        out << "*";
         return;
     case tint::core::BinaryOp::kDivide:
-        ss_ << "/";
+        out << "/";
         return;
     case tint::core::BinaryOp::kModulo:
-        ss_ << "%";
+        out << "%";
         return;
     }
     TINT_ICE() << "invalid binary op " << op;
 }
 
-void MiniPrinter::EmitCall(const tint::ast::CallExpression* expr) {
-    EmitExpression(expr->target, OperatorPosition::Left, OperatorGroup::Primary);
-    ss_ << "(";
+void MiniPrinter::EmitCall(std::stringstream& out, const tint::ast::CallExpression* expr) {
+    EmitExpression(out, expr->target, OperatorPosition::Left, OperatorGroup::Primary);
+    out << "(";
     bool first = true;
     const auto& args = expr->args;
     for (auto* arg : args) {
         if (!first) {
-            ss_ << ",";
+            out << ",";
         }
         first = false;
-        EmitExpression(arg, OperatorPosition::Left, OperatorGroup::None);
+        EmitExpression(out, arg, OperatorPosition::Left, OperatorGroup::None);
     }
-    ss_ << ")";
+    out << ")";
 }
 
-void MiniPrinter::EmitIdentifier(const tint::ast::IdentifierExpression* expr) {
-    EmitIdentifier(expr->identifier);
+void MiniPrinter::EmitIdentifier(std::stringstream& out, const tint::ast::IdentifierExpression* expr) {
+    EmitIdentifier(out, expr->identifier);
 }
 
-void MiniPrinter::EmitIdentifier(const tint::ast::Identifier* ident) {
+static const std::unordered_map<std::string, std::string> TypeAliases {
+    {"vec2<i32>",   "vec2i"  },
+    {"vec3<i32>",   "vec3i"  },
+    {"vec4<i32>",   "vec4i"  },
+    {"vec2<u32>",   "vec2u"  },
+    {"vec3<u32>",   "vec3u"  },
+    {"vec4<u32>",   "vec4u"  },
+    {"vec2<f32>",   "vec2f"  },
+    {"vec3<f32>",   "vec3f"  },
+    {"vec4<f32>",   "vec4f"  },
+    {"vec2<f16>",   "vec2h"  },
+    {"vec3<f16>",   "vec3h"  },
+    {"vec4<f16>",   "vec4h"  },
+    {"mat2x2<f32>", "mat2x2f"},
+    {"mat2x3<f32>", "mat2x3f"},
+    {"mat2x4<f32>", "mat2x4f"},
+    {"mat3x2<f32>", "mat3x2f"},
+    {"mat3x3<f32>", "mat3x3f"},
+    {"mat3x4<f32>", "mat3x4f"},
+    {"mat4x2<f32>", "mat4x2f"},
+    {"mat4x3<f32>", "mat4x3f"},
+    {"mat4x4<f32>", "mat4x4f"},
+    {"mat2x2<f16>", "mat2x2h"},
+    {"mat2x3<f16>", "mat2x3h"},
+    {"mat2x4<f16>", "mat2x4h"},
+    {"mat3x2<f16>", "mat3x2h"},
+    {"mat3x3<f16>", "mat3x3h"},
+    {"mat3x4<f16>", "mat3x4h"},
+    {"mat4x2<f16>", "mat4x2h"},
+    {"mat4x3<f16>", "mat4x3h"},
+    {"mat4x4<f16>", "mat4x4h"},
+};
+
+void MiniPrinter::EmitIdentifier(std::stringstream& out, const tint::ast::Identifier* ident) {
     if (auto* tmpl_ident = ident->As<tint::ast::TemplatedIdentifier>()) {
-        EmitAttributes(tmpl_ident->attributes);
-        ss_ << ident->symbol.Name() << "<";
+        EmitAttributes(out, tmpl_ident->attributes);
+
+        std::stringstream ss;
+        ss << ident->symbol.Name() << "<";
         for (auto* expr : tmpl_ident->arguments) {
             if (expr != tmpl_ident->arguments.Front()) {
-                ss_ << ",";
+                ss << ",";
             }
-            EmitExpression(expr, OperatorPosition::Left, OperatorGroup::None);
+            EmitExpression(ss, expr, OperatorPosition::Left, OperatorGroup::None);
         }
-        ss_ << ">";
+        ss << ">";
+
+        std::string name = std::move(ss).str();
+        if (options_->use_type_alias) {
+            auto iter = TypeAliases.find(name);
+            if (iter != TypeAliases.end()) {
+                out << iter->second;
+            } else {
+                out << name;
+            }
+        } else {
+            out << name;
+        }
     } else {
-        ss_ << ident->symbol.Name();
+        out << ident->symbol.Name();
     }
 }
 
-void MiniPrinter::EmitLiteral(const tint::ast::LiteralExpression* lit) {
+void MiniPrinter::EmitLiteral(std::stringstream& out, const tint::ast::LiteralExpression* lit) {
     Switch(
         lit,
-        [&](const tint::ast::BoolLiteralExpression* l) { ss_ << (l->value ? "true" : "false"); },
+        [&](const tint::ast::BoolLiteralExpression* l) { out << (l->value ? "true" : "false"); },
         [&](const tint::ast::FloatLiteralExpression* l) {
             if (options_->precise_float) {
                 if (l->suffix == tint::ast::FloatLiteralExpression::Suffix::kNone) {
-                    ss_ << tint::strconv::DoubleToBitPreservingString(l->value);
+                    out << tint::strconv::DoubleToBitPreservingString(l->value);
                 } else {
-                    ss_ << tint::strconv::FloatToBitPreservingString(static_cast<float>(l->value)) << l->suffix;
+                    out << tint::strconv::FloatToBitPreservingString(static_cast<float>(l->value)) << l->suffix;
                 }
             } else {
                 auto str = std::format("{:.6f}", l->value);
                 while (str.ends_with('0')) {
                     str.pop_back();
                 }
-                ss_ << str << l->suffix;
+                out << str << l->suffix;
             }
         },
-        [&](const tint::ast::IntLiteralExpression* l) { ss_ << l->value << l->suffix; },  //
+        [&](const tint::ast::IntLiteralExpression* l) { out << l->value << l->suffix; },  //
         TINT_ICE_ON_NO_MATCH
     );
 }
 
 void MiniPrinter::EmitUnaryOp(
+    std::stringstream& out,
     const tint::ast::UnaryOpExpression* expr,
     OperatorPosition position,
     OperatorGroup parent
 ) {
     auto paren = isParenthesisRequired(OperatorGroup::Unary, position, parent);
     if (paren) {
-        ss_ << "(";
+        out << "(";
     }
     switch (expr->op) {
     case tint::core::UnaryOp::kAddressOf:
-        ss_ << "&";
+        out << "&";
         break;
     case tint::core::UnaryOp::kComplement:
-        ss_ << "~";
+        out << "~";
         break;
     case tint::core::UnaryOp::kIndirection:
-        ss_ << "*";
+        out << "*";
         break;
     case tint::core::UnaryOp::kNot:
-        ss_ << "!";
+        out << "!";
         break;
     case tint::core::UnaryOp::kNegation:
-        ss_ << "-";
+        out << "-";
         break;
     }
-    EmitExpression(expr->expr, OperatorPosition::Right, OperatorGroup::Unary);
+    EmitExpression(out, expr->expr, OperatorPosition::Right, OperatorGroup::Unary);
     if (paren) {
-        ss_ << ")";
+        out << ")";
     }
 }
 

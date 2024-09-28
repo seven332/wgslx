@@ -8,6 +8,7 @@ namespace wgslx::writer {
 
 struct Options {
     bool precise_float = false;
+    bool use_type_alias = true;
 };
 
 struct Result {

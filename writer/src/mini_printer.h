@@ -42,39 +42,54 @@ class MiniPrinter {
     const Options* options_;
     std::stringstream ss_;
 
-    void EmitEnables();
-    void EmitRequires();
-    void EmitDiagnosticDirectives();
-    void EmitDiagnosticControl(const tint::ast::DiagnosticControl& diagnostic);
-    void EmitTypeDecl(const tint::ast::TypeDecl* td);
-    void EmitFunction(const tint::ast::Function* func);
-    void EmitStatement(const tint::ast::Statement* stmt);
-    void EmitAssign(const tint::ast::AssignmentStatement* stmt);
-    void EmitBlock(const tint::ast::BlockStatement* stmt);
-    void EmitBreakIf(const tint::ast::BreakIfStatement* b);
-    void EmitCompoundAssign(const tint::ast::CompoundAssignmentStatement* stmt);
-    void EmitIf(const tint::ast::IfStatement* stmt);
-    void EmitIncrementDecrement(const tint::ast::IncrementDecrementStatement* stmt);
-    void EmitLoop(const tint::ast::LoopStatement* stmt);
-    void EmitForLoop(const tint::ast::ForLoopStatement* stmt);
-    void EmitWhile(const tint::ast::WhileStatement* stmt);
-    void EmitReturn(const tint::ast::ReturnStatement* stmt);
-    void EmitSwitch(const tint::ast::SwitchStatement* stmt);
-    void EmitCase(const tint::ast::CaseStatement* stmt);
-    void EmitVariable(const tint::ast::Variable* var);
-    void EmitConstAssert(const tint::ast::ConstAssert* ca);
-    void EmitStructType(const tint::ast::Struct* str);
-    void EmitAttributes(tint::VectorRef<const tint::ast::Attribute*> attrs);
-    void EmitExpression(const tint::ast::Expression* expr, OperatorPosition position, OperatorGroup parent);
-    void EmitIndexAccessor(const tint::ast::IndexAccessorExpression* expr);
-    void EmitMemberAccessor(const tint::ast::MemberAccessorExpression* expr);
-    void EmitBinary(const tint::ast::BinaryExpression* expr, OperatorPosition position, OperatorGroup parent);
-    void EmitBinaryOp(const tint::core::BinaryOp op);
-    void EmitCall(const tint::ast::CallExpression* expr);
-    void EmitIdentifier(const tint::ast::IdentifierExpression* expr);
-    void EmitIdentifier(const tint::ast::Identifier* ident);
-    void EmitLiteral(const tint::ast::LiteralExpression* lit);
-    void EmitUnaryOp(const tint::ast::UnaryOpExpression* expr, OperatorPosition position, OperatorGroup parent);
+    void EmitEnables(std::stringstream& out);
+    void EmitRequires(std::stringstream& out);
+    void EmitDiagnosticDirectives(std::stringstream& out);
+    void EmitDiagnosticControl(std::stringstream& out, const tint::ast::DiagnosticControl& diagnostic);
+    void EmitTypeDecl(std::stringstream& out, const tint::ast::TypeDecl* td);
+    void EmitFunction(std::stringstream& out, const tint::ast::Function* func);
+    void EmitStatement(std::stringstream& out, const tint::ast::Statement* stmt);
+    void EmitAssign(std::stringstream& out, const tint::ast::AssignmentStatement* stmt);
+    void EmitBlock(std::stringstream& out, const tint::ast::BlockStatement* stmt);
+    void EmitBreakIf(std::stringstream& out, const tint::ast::BreakIfStatement* b);
+    void EmitCompoundAssign(std::stringstream& out, const tint::ast::CompoundAssignmentStatement* stmt);
+    void EmitIf(std::stringstream& out, const tint::ast::IfStatement* stmt);
+    void EmitIncrementDecrement(std::stringstream& out, const tint::ast::IncrementDecrementStatement* stmt);
+    void EmitLoop(std::stringstream& out, const tint::ast::LoopStatement* stmt);
+    void EmitForLoop(std::stringstream& out, const tint::ast::ForLoopStatement* stmt);
+    void EmitWhile(std::stringstream& out, const tint::ast::WhileStatement* stmt);
+    void EmitReturn(std::stringstream& out, const tint::ast::ReturnStatement* stmt);
+    void EmitSwitch(std::stringstream& out, const tint::ast::SwitchStatement* stmt);
+    void EmitCase(std::stringstream& out, const tint::ast::CaseStatement* stmt);
+    void EmitVariable(std::stringstream& out, const tint::ast::Variable* var);
+    void EmitConstAssert(std::stringstream& out, const tint::ast::ConstAssert* ca);
+    void EmitStructType(std::stringstream& out, const tint::ast::Struct* str);
+    void EmitAttributes(std::stringstream& out, const tint::VectorRef<const tint::ast::Attribute*>& attrs);
+    void EmitExpression(
+        std::stringstream& out,
+        const tint::ast::Expression* expr,
+        OperatorPosition position,
+        OperatorGroup parent
+    );
+    void EmitIndexAccessor(std::stringstream& out, const tint::ast::IndexAccessorExpression* expr);
+    void EmitMemberAccessor(std::stringstream& out, const tint::ast::MemberAccessorExpression* expr);
+    void EmitBinary(
+        std::stringstream& out,
+        const tint::ast::BinaryExpression* expr,
+        OperatorPosition position,
+        OperatorGroup parent
+    );
+    void EmitBinaryOp(std::stringstream& out, const tint::core::BinaryOp op);
+    void EmitCall(std::stringstream& out, const tint::ast::CallExpression* expr);
+    void EmitIdentifier(std::stringstream& out, const tint::ast::IdentifierExpression* expr);
+    void EmitIdentifier(std::stringstream& out, const tint::ast::Identifier* ident);
+    void EmitLiteral(std::stringstream& out, const tint::ast::LiteralExpression* lit);
+    void EmitUnaryOp(
+        std::stringstream& out,
+        const tint::ast::UnaryOpExpression* expr,
+        OperatorPosition position,
+        OperatorGroup parent
+    );
 };
 
 }  // namespace wgslx::writer
