@@ -22,14 +22,12 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
-#include <iterator>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/transform.hpp>
 #include <sstream>
 #include <string>
 #include <unordered_set>
-#include <vector>
 
 TINT_INSTANTIATE_TYPEINFO(wgslx::minifier::RenameIdentifiers);
 TINT_INSTANTIATE_TYPEINFO(wgslx::minifier::RenameIdentifiers::Data);

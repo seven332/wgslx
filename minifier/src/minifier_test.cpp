@@ -5,7 +5,6 @@
 #include <src/tint/lang/wgsl/writer/writer.h>
 
 #include <string>
-#include <unordered_map>
 
 namespace wgslx::minifier {
 
@@ -30,8 +29,8 @@ fn average(a: f32, b: f32) -> f32 {
     EXPECT_FALSE(result.failed);
     EXPECT_EQ(
         Write(result.program),
-        "fn a(b : f32, c : f32) -> f32 {\n  return ((b + c) / 2);\n}\n"
-        "\n@vertex\nfn d() -> @builtin(position) vec4f {\n  return vec4f(a(0, 1));\n}\n"
+        "fn a(b : f32, c : f32) -> f32 {\n  return ((b + c) / 2.0f);\n}\n"
+        "\n@vertex\nfn d() -> @builtin(position) vec4f {\n  return vec4f(a(0.0f, 1.0f));\n}\n"
     );
     EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "d")));
 }
@@ -64,6 +63,7 @@ TEST(minifier, RenameSkipKeywords) {
             .rename_identifiers = true,
             .remove_unreachable_statements = false,
             .remove_useless = false,
+            .fold_constants = false,
         }
     );
     EXPECT_FALSE(result.failed);
@@ -84,7 +84,7 @@ TEST(minifier, RemoveUnreachable) {
         {}
     );
     EXPECT_FALSE(result.failed);
-    EXPECT_EQ(Write(result.program), "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4f(2);\n}\n");
+    EXPECT_EQ(Write(result.program), "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4<f32>(2.0f);\n}\n");
     EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "a")));
 }
 
@@ -102,7 +102,7 @@ fn average(a: f32, b: f32) -> f32 {
         {}
     );
     EXPECT_FALSE(result.failed);
-    EXPECT_EQ(Write(result.program), "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4f(1);\n}\n");
+    EXPECT_EQ(Write(result.program), "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4<f32>(1.0f);\n}\n");
     EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "a")));
 }
 
@@ -119,11 +119,8 @@ const j = 2;
         {}
     );
     EXPECT_FALSE(result.failed);
-    EXPECT_EQ(
-        Write(result.program),
-        "const a = 2;\n\n@vertex\nfn b() -> @builtin(position) vec4f {\n  return (vec4f(1) / a);\n}\n"
-    );
-    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "b")));
+    EXPECT_EQ(Write(result.program), "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4<f32>(0.5f);\n}\n");
+    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "a")));
 }
 
 }  // namespace wgslx::minifier

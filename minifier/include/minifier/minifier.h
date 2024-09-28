@@ -12,6 +12,7 @@ struct Options {
     bool rename_identifiers = true;
     bool remove_unreachable_statements = true;
     bool remove_useless = true;
+    bool fold_constants = true;
 };
 
 struct Result {

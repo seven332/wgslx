@@ -2,6 +2,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "src/tint/lang/wgsl/ast/transform/transform.h"
 
@@ -12,7 +13,7 @@ class RenameIdentifiers final : public tint::Castable<RenameIdentifiers, tint::a
     using Remappings = std::unordered_map<std::string, std::string>;
 
     struct Data final : public Castable<Data, tint::ast::transform::Data> {
-        explicit Data(Remappings&& r) : remappings(r) {}
+        explicit Data(Remappings&& r) : remappings(std::move(r)) {}
         Remappings remappings;
     };
 
