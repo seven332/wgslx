@@ -796,7 +796,7 @@ void MiniPrinter::EmitLiteral(std::stringstream& out, const tint::ast::LiteralEx
         [&](const tint::ast::BoolLiteralExpression* l) { out << (l->value ? "true" : "false"); },
         [&](const tint::ast::FloatLiteralExpression* l) {
             if (options_->precise_float) {
-                if (l->suffix == tint::ast::FloatLiteralExpression::Suffix::kNone) {
+                if (l->suffix == tint::ast::FloatLiteralExpression::Suffix::kNone || options_->ignore_literal_suffix) {
                     out << tint::strconv::DoubleToBitPreservingString(l->value);
                 } else {
                     out << tint::strconv::FloatToBitPreservingString(static_cast<float>(l->value)) << l->suffix;
@@ -806,10 +806,18 @@ void MiniPrinter::EmitLiteral(std::stringstream& out, const tint::ast::LiteralEx
                 while (str.ends_with('0')) {
                     str.pop_back();
                 }
-                out << str << l->suffix;
+                out << str;
+                if (!options_->ignore_literal_suffix) {
+                    out << l->suffix;
+                }
             }
         },
-        [&](const tint::ast::IntLiteralExpression* l) { out << l->value << l->suffix; },  //
+        [&](const tint::ast::IntLiteralExpression* l) {
+            out << l->value;
+            if (!options_->ignore_literal_suffix) {
+                out << l->suffix;
+            }
+        },
         TINT_ICE_ON_NO_MATCH
     );
 }

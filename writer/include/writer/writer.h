@@ -9,6 +9,7 @@ namespace wgslx::writer {
 struct Options {
     bool precise_float = false;
     bool use_type_alias = true;
+    bool ignore_literal_suffix = true;
 };
 
 struct Result {

@@ -137,7 +137,7 @@ TEST(writer, expression) {
     for (auto i = 0; i < 100; ++i) {
         auto code = "const a = " + random.next() + ";";
         auto program1 = Parse(code.c_str());
-        auto result = Write(program1, {});
+        auto result = Write(program1, {.ignore_literal_suffix = false});
         auto program2 = Parse(result.wgsl.c_str());
         auto r1 = tint::wgsl::writer::Generate(program1, {});
         auto r2 = tint::wgsl::writer::Generate(program2, {});
@@ -213,7 +213,14 @@ TEST(writer, dawn_files) {
             }
 
             auto program1 = Parse(content.c_str());
-            auto result = Write(program1, {.precise_float = true, .use_type_alias = false});
+            auto result = Write(
+                program1,
+                {
+                    .precise_float = true,
+                    .use_type_alias = false,
+                    .ignore_literal_suffix = false,
+                }
+            );
             auto program2 = Parse(result.wgsl.c_str());
             auto r1 = tint::wgsl::writer::Generate(program1, {});
             auto r2 = tint::wgsl::writer::Generate(program2, {});

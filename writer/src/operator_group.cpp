@@ -1,7 +1,5 @@
 #include "operator_group.h"
 
-#include <cstdint>
-
 namespace wgslx::writer {
 
 OperatorGroup toOperatorGroup(tint::core::BinaryOp op) {
