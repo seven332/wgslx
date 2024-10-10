@@ -1,8 +1,5 @@
 add_executable(cmd src/main.cpp)
-target_compile_options(
-    cmd
-    PRIVATE -fno-rtti -Wall -Wextra -Wno-missing-field-initializers -Werror
-)
+target_compile_options(cmd PRIVATE ${WGSLX_COMPILE_OPTIONS})
 target_link_libraries(cmd PRIVATE minifier writer tint_utils_cli nlohmann_json)
 set_target_properties(cmd PROPERTIES OUTPUT_NAME "wgslx")
 

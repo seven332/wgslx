@@ -5,10 +5,7 @@ add_library(
     src/remove_useless.cpp
     src/traverser.cpp
 )
-target_compile_options(
-    minifier
-    PRIVATE -fno-rtti -Wall -Wextra -Wno-missing-field-initializers -Werror
-)
+target_compile_options(minifier PRIVATE ${WGSLX_COMPILE_OPTIONS})
 target_include_directories(minifier PUBLIC include PRIVATE src)
 target_link_libraries(minifier PUBLIC tint_api PRIVATE range-v3)
 
