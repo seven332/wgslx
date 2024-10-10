@@ -22,6 +22,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
+#include <iostream>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/transform.hpp>
@@ -227,6 +228,15 @@ static bool IsKeyword(const char* str) {
     return std::binary_search(SortedKeywords.begin(), SortedKeywords.end(), str, Compare);
 }
 
+static bool IsSwizzle(const std::string& str) {
+    if (str.empty() || str.size() > 4) {
+        return false;
+    }
+
+    return std::all_of(str.begin(), str.end(), [](char c) { return c == 'r' || c == 'g' || c == 'b' || c == 'a'; }) ||
+           std::all_of(str.begin(), str.end(), [](char c) { return c == 'x' || c == 'y' || c == 'z' || c == 'w'; });
+}
+
 static std::string ToName(int index) {
     static constexpr int HalfLowBase = ('z' - 'a' + 1);
     static_assert('Z' - 'A' + 1 == HalfLowBase);
@@ -269,7 +279,7 @@ static std::string NextValidName(int& index) {
     do {
         name = ToName(index);
         ++index;
-    } while (IsKeyword(name.c_str()));
+    } while (IsKeyword(name.c_str()) || IsSwizzle(name));
     return name;
 }
 

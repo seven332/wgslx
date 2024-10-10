@@ -29,10 +29,10 @@ fn average(a: f32, b: f32) -> f32 {
     EXPECT_FALSE(result.failed);
     EXPECT_EQ(
         Write(result.program),
-        "fn a(b : f32, c : f32) -> f32 {\n  return ((b + c) / 2.0f);\n}\n"
-        "\n@vertex\nfn d() -> @builtin(position) vec4f {\n  return vec4f(a(0.0f, 1.0f));\n}\n"
+        "fn c(d : f32, e : f32) -> f32 {\n  return ((d + e) / 2.0f);\n}\n"
+        "\n@vertex\nfn f() -> @builtin(position) vec4f {\n  return vec4f(c(0.0f, 1.0f));\n}\n"
     );
-    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "d")));
+    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "f")));
 }
 
 TEST(minifier, MinifyFailed) {
@@ -67,9 +67,31 @@ TEST(minifier, RenameSkipKeywords) {
         }
     );
     EXPECT_FALSE(result.failed);
-    EXPECT_NE(Write(result.program).find("let ar = 0;"), std::string::npos);
+    EXPECT_NE(Write(result.program).find("let aq = 0;"), std::string::npos);
+    EXPECT_EQ(Write(result.program).find("let ar = 0;"), std::string::npos);
     EXPECT_EQ(Write(result.program).find("let as = 0;"), std::string::npos);
     EXPECT_NE(Write(result.program).find("let at = 0;"), std::string::npos);
+}
+
+TEST(minifier, RenameSkipSwizzle) {
+    auto result = Minify(
+        R"(
+fn getA(color: vec4f) -> f32 {
+    return color.a;
+}
+
+@vertex fn vs1() -> @builtin(position) vec4f {
+    return vec4f(getA(vec4f(1)), 1, 1, 1);
+}
+)",
+        {}
+    );
+    EXPECT_FALSE(result.failed);
+    EXPECT_EQ(
+        Write(result.program),
+        "fn c(d : vec4f) -> f32 {\n  return d.a;\n}\n\n@vertex\nfn e() -> @builtin(position) vec4f {\n  return vec4f(c(vec4<f32>(1.0f)), 1.0f, 1.0f, 1.0f);\n}\n"
+    );
+    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "e")));
 }
 
 TEST(minifier, RemoveUnreachable) {
@@ -84,8 +106,8 @@ TEST(minifier, RemoveUnreachable) {
         {}
     );
     EXPECT_FALSE(result.failed);
-    EXPECT_EQ(Write(result.program), "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4<f32>(2.0f);\n}\n");
-    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "a")));
+    EXPECT_EQ(Write(result.program), "@vertex\nfn c() -> @builtin(position) vec4f {\n  return vec4<f32>(2.0f);\n}\n");
+    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "c")));
 }
 
 TEST(minifier, RemoveUselessFunctions) {
@@ -102,8 +124,8 @@ fn average(a: f32, b: f32) -> f32 {
         {}
     );
     EXPECT_FALSE(result.failed);
-    EXPECT_EQ(Write(result.program), "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4<f32>(1.0f);\n}\n");
-    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "a")));
+    EXPECT_EQ(Write(result.program), "@vertex\nfn c() -> @builtin(position) vec4f {\n  return vec4<f32>(1.0f);\n}\n");
+    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "c")));
 }
 
 TEST(minifier, RemoveUselessConst) {
@@ -119,8 +141,8 @@ const j = 2;
         {}
     );
     EXPECT_FALSE(result.failed);
-    EXPECT_EQ(Write(result.program), "@vertex\nfn a() -> @builtin(position) vec4f {\n  return vec4<f32>(0.5f);\n}\n");
-    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "a")));
+    EXPECT_EQ(Write(result.program), "@vertex\nfn c() -> @builtin(position) vec4f {\n  return vec4<f32>(0.5f);\n}\n");
+    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "c")));
 }
 
 }  // namespace wgslx::minifier
