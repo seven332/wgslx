@@ -396,7 +396,14 @@ void MiniPrinter::EmitVariable(std::stringstream& out, const tint::ast::Variable
         [&](const tint::ast::Const*) { out << "const"; },  //
         TINT_ICE_ON_NO_MATCH
     );
-    out << " " << var->name->symbol.Name();
+
+    out.seekg(-1, std::ios::end);
+    auto c = static_cast<char>(out.peek());
+    if (c != '>') {
+        out << " ";
+    }
+
+    out << var->name->symbol.Name();
     if (auto ty = var->type) {
         out << ":";
         EmitExpression(out, ty, OperatorPosition::Left, OperatorGroup::None);

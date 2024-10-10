@@ -198,6 +198,16 @@ fn main() -> @location(0) vec4f {
     EXPECT_EQ(result.wgsl, "@fragment fn main()->@location(0)vec4f{return vec4f(1);}");
 }
 
+TEST(writer, remove_space_after_var_uniform) {
+    auto program = Parse(
+        R"(
+@group(0) @binding(0) var<uniform> a: i32;
+)"
+    );
+    auto result = Write(program, {});
+    EXPECT_EQ(result.wgsl, "@group(0)@binding(0)var<uniform>a:i32;");
+}
+
 TEST(writer, dawn_files) {
     auto dir = std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "third_party" / "dawn" /
                "test" / "tint";
