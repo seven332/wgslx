@@ -389,19 +389,15 @@ void MiniPrinter::EmitVariable(std::stringstream& out, const tint::ast::Variable
                     EmitExpression(out, var->declared_access, OperatorPosition::Left, OperatorGroup::None);
                 }
                 out << ">";
+            } else {
+                out << " ";
             }
         },
-        [&](const tint::ast::Let*) { out << "let"; },
-        [&](const tint::ast::Override*) { out << "override"; },
-        [&](const tint::ast::Const*) { out << "const"; },  //
+        [&](const tint::ast::Let*) { out << "let "; },
+        [&](const tint::ast::Override*) { out << "override "; },
+        [&](const tint::ast::Const*) { out << "const "; },
         TINT_ICE_ON_NO_MATCH
     );
-
-    out.seekg(-1, std::ios::end);
-    auto c = static_cast<char>(out.peek());
-    if (c != '>') {
-        out << " ";
-    }
 
     out << var->name->symbol.Name();
     if (auto ty = var->type) {
