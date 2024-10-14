@@ -143,7 +143,7 @@ static void MarkVisited(Elements& elements, const tint::Symbol& symbol) {
     }
 }
 
-static std::vector<const tint::ast::Node*> FindUseless(const tint::Program& program) {
+static std::vector<const tint::ast::Node*> FindGlobalUseless(const tint::Program& program) {
     auto elements = CollectElements(program);
     for (const auto& [symbol, element] : elements) {
         if (element.self.IsEntryPoint()) {
@@ -154,6 +154,31 @@ static std::vector<const tint::ast::Node*> FindUseless(const tint::Program& prog
            ranges::views::transform([](const auto& p) { return p.second.self.Ptr(); }) | ranges::to<std::vector>();
 }
 
+static void RemoveUselessVariables(tint::program::CloneContext* ctx, const tint::ast::BlockStatement* statement) {
+    std::unordered_map<tint::Symbol, std::pair<const tint::ast::VariableDeclStatement*, int>> vars;
+    for (const auto* statement : statement->statements) {
+        if (statement->Is<tint::ast::VariableDeclStatement>()) {
+            const auto* decl = statement->As<tint::ast::VariableDeclStatement>();
+            vars.emplace(decl->variable->name->symbol, std::make_pair(decl, 0));
+        } else if (statement->Is<tint::ast::BlockStatement>()) {
+            RemoveUselessVariables(ctx, statement->As<tint::ast::BlockStatement>());
+        }
+    }
+
+    Traverse(statement, [&](const tint::ast::Identifier* i) {
+        auto iter = vars.find(i->symbol);
+        if (iter != vars.end()) {
+            ++iter->second.second;
+        }
+    });
+
+    for (const auto& [_, declAndCount] : vars) {
+        if (declAndCount.second == 1) {
+            ctx->Remove(statement->statements, declAndCount.first);
+        }
+    }
+}
+
 RemoveUseless::ApplyResult RemoveUseless::Apply(
     const tint::Program& program,
     const tint::ast::transform::DataMap& /* inputs */,
@@ -161,8 +186,14 @@ RemoveUseless::ApplyResult RemoveUseless::Apply(
 ) const {
     tint::ProgramBuilder builder;
     tint::program::CloneContext ctx(&builder, &program, true);
-    for (const auto* node : FindUseless(*ctx.src)) {
+    for (const auto* node : FindGlobalUseless(*ctx.src)) {
         ctx.Remove(ctx.src->AST().GlobalDeclarations(), node);
+    }
+    for (const auto* node : program.AST().GlobalDeclarations()) {
+        if (node->Is<tint::ast::Function>()) {
+            const auto* function = node->As<tint::ast::Function>();
+            RemoveUselessVariables(&ctx, function->body);
+        }
     }
     ctx.Clone();
     return tint::resolver::Resolve(builder);

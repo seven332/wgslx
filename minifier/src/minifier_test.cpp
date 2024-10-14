@@ -145,4 +145,24 @@ const j = 2;
     EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "c")));
 }
 
+TEST(minifier, RemoveUselessVar) {
+    auto result = Minify(
+        R"(
+@vertex fn vs1() -> @builtin(position) vec4f {
+    let i = 2.0;
+    const j = 2.0;
+    let k = 2.0;
+    return vec4f(1) / i / j;
+}
+)",
+        {}
+    );
+    EXPECT_FALSE(result.failed);
+    EXPECT_EQ(
+        Write(result.program),
+        "@vertex\nfn c() -> @builtin(position) vec4f {\n  let d = 2.0f;\n  return ((vec4<f32>(1.0f) / d) / 2.0f);\n}\n"
+    );
+    EXPECT_THAT(result.remappings, testing::UnorderedElementsAre(testing::Pair("vs1", "c")));
+}
+
 }  // namespace wgslx::minifier

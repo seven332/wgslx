@@ -22,7 +22,6 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
-#include <iostream>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/transform.hpp>
