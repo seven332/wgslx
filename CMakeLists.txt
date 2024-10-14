@@ -15,6 +15,7 @@ set(WGSLX_COMPILE_OPTIONS
     -Wall
     -Wextra
     -Wno-missing-field-initializers
+    -Wno-deprecated-declarations
     -Werror
 )
 
