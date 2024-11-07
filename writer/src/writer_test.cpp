@@ -198,6 +198,32 @@ fn main() -> @location(0) vec4f {
     EXPECT_EQ(result.wgsl, "@fragment fn main()->@location(0)vec4f{return vec4f(1);}");
 }
 
+TEST(writer, remove_leading_zero) {
+    auto program = Parse(
+        R"(
+@fragment
+fn main() -> @location(0) vec4f {
+  return vec4f(0.123);
+}
+)"
+    );
+    auto result = Write(program, {});
+    EXPECT_EQ(result.wgsl, "@fragment fn main()->@location(0)vec4f{return vec4f(.123);}");
+}
+
+TEST(writer, keep_zero) {
+    auto program = Parse(
+        R"(
+@fragment
+fn main() -> @location(0) vec4f {
+  return vec4f(0.0);
+}
+)"
+    );
+    auto result = Write(program, {});
+    EXPECT_EQ(result.wgsl, "@fragment fn main()->@location(0)vec4f{return vec4f(0.);}");
+}
+
 TEST(writer, remove_space_after_var_uniform) {
     auto program = Parse(
         R"(

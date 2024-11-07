@@ -809,6 +809,9 @@ void MiniPrinter::EmitLiteral(std::stringstream& out, const tint::ast::LiteralEx
                 while (str.ends_with('0')) {
                     str.pop_back();
                 }
+                if (str.starts_with("0.") && str.size() > 2) {
+                    str = str.substr(1);
+                }
                 out << str;
                 if (!options_->ignore_literal_suffix) {
                     out << l->suffix;
