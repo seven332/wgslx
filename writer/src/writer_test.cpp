@@ -2,7 +2,6 @@
 
 #include <gmock/gmock.h>
 #include <src/tint/lang/wgsl/common/allowed_features.h>
-#include <src/tint/lang/wgsl/common/validation_mode.h>
 #include <src/tint/lang/wgsl/program/program.h>
 #include <src/tint/lang/wgsl/reader/reader.h>
 #include <src/tint/lang/wgsl/writer/writer.h>
@@ -26,7 +25,6 @@ static tint::Program Parse(const char* code) {
         &file,
         {
             .allowed_features = tint::wgsl::AllowedFeatures::Everything(),
-            .mode = tint::wgsl::ValidationMode::kFull,
         }
     );
     auto errors = program.Diagnostics() | ranges::views::filter([](const tint::diag::Diagnostic& diag) {

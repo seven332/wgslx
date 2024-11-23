@@ -38,7 +38,6 @@ Result Minify(std::string_view data, const Options& options) {
         &file,
         {
             .allowed_features = tint::wgsl::AllowedFeatures::Everything(),
-            .mode = tint::wgsl::ValidationMode::kFull,
         }
     );
     if (input.Diagnostics().ContainsErrors()) {
